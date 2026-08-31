@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------
+# Ambiente e artefatos
+# ---------------------------------------------------------------------------
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+data/saida/*.xlsx
+data/pedidos/*.json
+~$*
+
+# ---------------------------------------------------------------------------
+# Fora do repositório por serem dados de terceiros ou informação comercial.
+# Ficam só na máquina de quem usa o sistema.
+# ---------------------------------------------------------------------------
+
+# Listas de preço da Securiton (material confidencial do fabricante) e demais
+# pastas de listas. O sistema as lê do disco; veja `config/catalogo.yaml`.
+Fwd_ Novas listas de preços 2026/
+Listas */
+
+# Proformas e planilhas reais (trazem cliente, quantidades e preços praticados).
+*.xls
+*.xlsx
+!tests/**/*.xlsx
+
+# Desconto negociado e dados bancários. O repositório traz
+# `config/comercial.exemplo.yaml`, que o sistema usa quando este não existe.
+config/comercial.yaml

@@ -1,0 +1,8 @@
+openpyxl>=3.1
+Pillow>=10.0     # necessário para inserir o logo na planilha
+PyYAML>=6.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+xlrd>=2.0        # leitura de listas antigas em .xls
+pytest>=8.0      # testes

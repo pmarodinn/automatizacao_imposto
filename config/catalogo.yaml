@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+# De onde vêm as listas de preço da Securiton e como lê-las.
+#
+# O leitor é auto-detectável: ele procura a linha de cabeçalho e descobre
+# sozinho quais colunas são Description / Type / Part No. / Gross Price.
+# As chaves abaixo só existem para cobrir listas fora do padrão.
+# ---------------------------------------------------------------------------
+
+# Pastas varridas em busca de listas (.xlsx/.xls/.csv). Caminhos relativos são
+# resolvidos a partir da raiz do projeto. Acrescente quantas pastas quiser.
+#
+# `fornecedor` liga a pasta a um bloco de `fornecedores.yaml` — é o que faz a
+# logo certa aparecer na proforma. Pode-se escrever só o caminho, sem
+# fornecedor, e nesse caso vale o `padrao` de `fornecedores.yaml`.
+pastas:
+  - caminho: "Fwd_ Novas listas de preços 2026"
+    fornecedor: securiton
+
+# Arquivos individuais adicionais (opcional). Mesmo formato das pastas.
+arquivos: []
+
+# Padrões de arquivo ignorados na varredura.
+ignorar:
+  - "~$*"
+  - "*Terms*"
+
+# Sinônimos aceitos em cada coluna do cabeçalho (comparação sem acento,
+# minúscula e por prefixo). Acrescente traduções conforme necessário.
+colunas:
+  descricao: [description, descricao, bezeichnung, artikel, produto]
+  tipo: [type, typ, tipo, model, modelo]
+  part_number: [part. no., part no, part number, artikel-nr, codigo, código, sap]
+  preco: [gross price, price, preis, preço, preco, valor, list price]
+
+# Se a auto-detecção falhar em algum arquivo, force o mapeamento aqui.
+# A chave é o nome do arquivo (sem caminho).
+sobrescritas: {}
+  # "Lista_Nova.xlsx":
+  #   aba: "Sheet1"
+  #   linha_cabecalho: 5
+  #   colunas: {descricao: A, tipo: B, part_number: C, preco: E}
+
+# Nome do sistema de cada arquivo. Por padrão usa o título da lista (célula à
+# direita de "Gross Price List in EURO") e, na falta dele, o nome da aba.
+sistemas: {}
+  # "Power Supplies_2026_Q2.xlsx": "Fontes de Alimentação"
+
+# Uma linha só com texto na coluna de descrição (sem tipo/part number/preço)
+# é tratada como título de categoria e herdada pelos itens seguintes.
+categorias_por_linha_sem_preco: true

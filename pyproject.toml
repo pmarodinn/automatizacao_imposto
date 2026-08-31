@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "augeo-compras"
+version = "1.0.0"
+description = "Automação das planilhas de compra (proforma) a partir das listas de preço Securiton"
+requires-python = ">=3.10"
+dependencies = [
+    "openpyxl>=3.1",
+    "Pillow>=10.0",
+    "PyYAML>=6.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    "xlrd>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+augeo-compras = "augeo_compras.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+augeo_compras = ["web/static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["slow: depende do LibreOffice para recalcular a planilha"]

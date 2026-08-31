@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automação de compras — Securiton</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<style>
+/* ===================================================================
+   Design tokens
+   =================================================================== */
+:root{
+  /* superfícies */
+  --fundo:#f7f8fa; --painel:#ffffff; --painel-2:#f9fafc;
+  --borda:#e8ebf0; --borda-suave:#f0f2f6;
+  /* texto */
+  --texto:#242931; --texto-medio:#5b6472; --texto-fraco:#8a93a1;
+  /* marca e estados — vermelho dessaturado, para não brigar com a leitura */
+  --acento:#b8474d; --acento-forte:#a33d43; --acento-tenue:#b8474d0f;
+  --acento-botao:#b8474d; --acento-botao-hover:#a33d43;
+  --sombra-acento:0 1px 2px #b8474d2e, 0 4px 14px -5px #b8474d47;
+  --sombra-acento-forte:0 2px 6px #b8474d38, 0 10px 24px -8px #b8474d52;
+  --foco:#b8474d26;
+  --aviso:#9a6b21; --aviso-fundo:#fdfaf3; --aviso-borda:#eee2cb;
+  --positivo:#3f8f6a;
+  /* profundidade */
+  --sombra-1:0 1px 2px #0b13240f, 0 1px 1px #0b132408;
+  --sombra-2:0 2px 4px #0b13240a, 0 8px 22px -10px #0b132414;
+  --sombra-3:0 10px 34px -12px #0b13242e, 0 2px 8px #0b13240f;
+  --tour-escurecer:#1a2130a3;
+  /* forma e ritmo */
+  --raio:14px; --raio-p:9px; --raio-pp:7px;
+  /* movimento */
+  --ease:cubic-bezier(.2,.8,.3,1); --ease-suave:cubic-bezier(.4,0,.2,1);
+  --rapido:140ms; --medio:220ms; --lento:400ms;
+  /* tipografia */
+  --fonte:ui-sans-serif,system-ui,-apple-system,"Segoe UI Variable Text","Segoe UI",
+          Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --fonte-mono:ui-monospace,"SF Mono","Segoe UI Mono","Roboto Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --fundo:#13161b; --painel:#1a1e25; --painel-2:#1e232b;
+    --borda:#2a303a; --borda-suave:#242932;
+    --texto:#dfe3e9; --texto-medio:#a7b0bd; --texto-fraco:#838c9a;
+    --acento:#e08a8f; --acento-forte:#eba1a5; --acento-tenue:#e08a8f14;
+    /* No escuro o botão usa um vermelho mais fechado: o tom claro que serve
+       para texto e bordas fica berrante como fundo. */
+    --acento-botao:#a8434a; --acento-botao-hover:#b94e55;
+    --sombra-acento:0 1px 2px #00000047, 0 4px 14px -5px #a8434a5c;
+    --sombra-acento-forte:0 2px 6px #00000052, 0 10px 24px -8px #a8434a75;
+    --foco:#e08a8f2e;
+    --aviso:#cfa66c; --aviso-fundo:#211c15; --aviso-borda:#3a3122;
+    --positivo:#69bd93;
+    --sombra-1:0 1px 2px #00000040;
+    --sombra-2:0 2px 6px #0000004d, 0 10px 26px -12px #00000066;
+    --sombra-3:0 14px 42px -14px #00000099, 0 2px 8px #0000004d;
+    --tour-escurecer:#080b10c4;
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-delay:0 !important;
+    transition-duration:.01ms !important;scroll-behavior:auto !important}
+}
+
+/* ===================================================================
+   Base
+   =================================================================== */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--fundo);color:var(--texto);
+  font:400 14px/1.55 var(--fonte);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font-feature-settings:"cv05","ss01";text-rendering:optimizeLegibility}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.012em;color:var(--texto)}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+code{font-family:var(--fonte-mono);font-size:.86em}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--acento);outline-offset:2px;border-radius:var(--raio-pp)}
+::selection{background:var(--acento-tenue);color:var(--texto)}
+
+/* barra de rolagem: quase invisível em repouso, ganha corpo ao passar o mouse */
+*{scrollbar-width:thin;scrollbar-color:var(--borda) transparent}
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--borda);border-radius:20px;
+  border:4px solid transparent;background-clip:content-box;
+  transition:background var(--medio) var(--ease)}
+:hover::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--texto-fraco) 45%,transparent);
+  background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--texto-fraco);background-clip:content-box;
+  border-width:3px}
+::-webkit-scrollbar-corner{background:transparent}
+.rolavel{overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth}
+
+/* ===================================================================
+   Animações
+   =================================================================== */
+@keyframes subir{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes revelar{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes surgir{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes entrar-balao{from{opacity:0;transform:scale(.96) translateY(6px)}
+  to{opacity:1;transform:none}}
+@keyframes pulsar{0%{box-shadow:0 0 0 0 var(--foco)}100%{box-shadow:0 0 0 12px transparent}}
+
+/* ===================================================================
+   Cabeçalho
+   =================================================================== */
+header.topo{position:sticky;top:0;z-index:30;
+  background:color-mix(in srgb, var(--painel) 86%, transparent);
+  backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid var(--borda-suave);
+  padding:11px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+header.topo h1{font-size:15px;font-weight:600;letter-spacing:-.015em;white-space:nowrap}
+header.topo h1 span{color:var(--acento)}
+.stats{display:flex;gap:7px;flex-wrap:wrap}
+.pilula{display:inline-flex;align-items:center;gap:5px;
+  background:var(--painel-2);border:1px solid var(--borda-suave);
+  border-radius:20px;padding:3px 11px;font-size:12px;color:var(--texto-fraco);
+  transition:border-color var(--rapido) var(--ease),color var(--rapido) var(--ease)}
+.pilula b{color:var(--texto-medio);font-weight:600;font-variant-numeric:tabular-nums}
+.acoes-topo{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+
+/* ===================================================================
+   Botões
+   =================================================================== */
+button{
+  --bg:var(--painel); --bd:var(--borda); --cor:var(--texto-medio);
+  background:var(--bg);border:1px solid var(--bd);color:var(--cor);
+  border-radius:var(--raio-p);padding:7px 13px;cursor:pointer;
+  font-weight:500;line-height:1.35;white-space:nowrap;
+  box-shadow:var(--sombra-1);
+  transition:background var(--rapido) var(--ease), border-color var(--rapido) var(--ease),
+             color var(--rapido) var(--ease), box-shadow var(--medio) var(--ease),
+             transform var(--rapido) var(--ease);
+}
+button:hover{--bd:var(--texto-fraco);--cor:var(--texto);
+  transform:translateY(-1px);box-shadow:var(--sombra-2)}
+button:active{transform:translateY(0) scale(.985);box-shadow:var(--sombra-1);
+  transition-duration:60ms}
+button.principal{--bg:var(--acento-botao);--bd:var(--acento-botao);--cor:#fff;font-weight:600;
+  box-shadow:var(--sombra-acento)}
+button.principal:hover{--bg:var(--acento-botao-hover);--bd:var(--acento-botao-hover);--cor:#fff;
+  box-shadow:var(--sombra-acento-forte)}
+button.fantasma{--bg:transparent;--bd:transparent;box-shadow:none}
+button.fantasma:hover{--bg:var(--painel-2);--bd:var(--borda);box-shadow:var(--sombra-1)}
+button.icone{padding:4px 9px;--bg:transparent;--bd:transparent;box-shadow:none;
+  color:var(--texto-fraco);font-size:13px}
+button.icone:hover{--bg:var(--acento-tenue);--bd:transparent;color:var(--acento);
+  box-shadow:none;transform:none}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* ===================================================================
+   Layout
+   =================================================================== */
+main{display:grid;grid-template-columns:minmax(330px,1fr) minmax(540px,1.4fr);
+  gap:18px;padding:18px 22px 40px;max-width:1760px;margin:0 auto;align-items:start}
+@media (max-width:1080px){main{grid-template-columns:1fr;padding:16px}}
+
+.painel{background:var(--painel);border:1px solid var(--borda-suave);
+  border-radius:var(--raio);box-shadow:var(--sombra-2);overflow:hidden;
+  animation:subir var(--lento) var(--ease) both}
+main > .painel:nth-child(2){animation-delay:70ms}
+.painel > header{display:flex;align-items:center;gap:10px;
+  padding:13px 18px;border-bottom:1px solid var(--borda-suave)}
+.painel > header h2{font-size:13.5px;font-weight:600;letter-spacing:-.005em}
+.corpo{padding:16px 18px}
+.coluna-esquerda{position:sticky;top:66px}
+
+/* seções colapsáveis */
+details{border-top:1px solid var(--borda-suave)}
+details > summary{padding:11px 18px;cursor:pointer;font-weight:550;font-size:13px;
+  list-style:none;display:flex;align-items:center;gap:7px;color:var(--texto-medio);
+  transition:color var(--rapido) var(--ease),background var(--rapido) var(--ease)}
+details > summary::-webkit-details-marker{display:none}
+details > summary::before{content:"";width:5px;height:5px;flex:none;
+  border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
+  transform:rotate(-45deg);margin-left:2px;margin-right:2px;opacity:.55;
+  transition:transform var(--medio) var(--ease)}
+details[open] > summary::before{transform:rotate(45deg)}
+details > summary:hover{color:var(--texto);background:var(--painel-2)}
+details[open] > *:not(summary){animation:revelar var(--medio) var(--ease) both}
+
+/* ===================================================================
+   Formulários
+   =================================================================== */
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}
+label{display:block;font-size:10.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--texto-fraco);margin-bottom:5px}
+input,textarea,.gatilho{width:100%;background:var(--painel-2);
+  border:1px solid var(--borda);border-radius:var(--raio-pp);padding:8px 10px;
+  color:var(--texto);
+  transition:border-color var(--medio) var(--ease),box-shadow var(--medio) var(--ease),
+             background var(--medio) var(--ease)}
+input::placeholder,textarea::placeholder{color:var(--texto-fraco);opacity:.8}
+input:hover,textarea:hover,.gatilho:hover{border-color:color-mix(in srgb,var(--texto-fraco) 55%,transparent)}
+input:focus,textarea:focus{background:var(--painel);
+  border-color:var(--acento);box-shadow:0 0 0 3px var(--foco)}
+textarea{resize:vertical;min-height:66px;line-height:1.5}
+
+/* o seletor de data e os botõezinhos de número, mais discretos */
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.4;cursor:pointer;
+  transition:opacity var(--rapido) var(--ease)}
+input[type=date]:hover::-webkit-calendar-picker-indicator{opacity:.8}
+input[type=number]::-webkit-inner-spin-button{opacity:0;
+  transition:opacity var(--medio) var(--ease)}
+input[type=number]:hover::-webkit-inner-spin-button,
+input[type=number]:focus::-webkit-inner-spin-button{opacity:.6}
+
+/* -------- select fluido (a lista nativa não é estilizável) -------- */
+.select-fluido{position:relative}
+.select-fluido > select{position:absolute;width:1px;height:1px;opacity:0;
+  pointer-events:none;overflow:hidden}
+.gatilho{display:flex;align-items:center;gap:9px;text-align:left;font-weight:400;
+  box-shadow:none;cursor:pointer;line-height:1.4}
+.gatilho:hover{transform:none;box-shadow:none;color:var(--texto)}
+.gatilho:active{transform:none}
+.gatilho .valor{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gatilho .seta{flex:none;width:6px;height:6px;opacity:.5;
+  border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
+  transform:translateY(-2px) rotate(45deg);
+  transition:transform var(--medio) var(--ease),opacity var(--rapido) var(--ease)}
+.select-fluido.aberto .gatilho{background:var(--painel);border-color:var(--acento);
+  box-shadow:0 0 0 3px var(--foco)}
+.select-fluido.aberto .seta{transform:translateY(1px) rotate(225deg);opacity:.9}
+/* A lista é posicionada em relação à janela e pendurada no <body>, para não
+   ser cortada pelo `overflow:hidden` do painel em que o campo vive. */
+.opcoes{position:fixed;z-index:120;
+  background:var(--painel);border:1px solid var(--borda);border-radius:var(--raio-p);
+  box-shadow:var(--sombra-3);padding:5px;max-height:290px;overflow-y:auto;
+  overscroll-behavior:contain;
+  opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top center;
+  pointer-events:none;visibility:hidden;
+  transition:opacity var(--medio) var(--ease),transform var(--medio) var(--ease),
+             visibility 0s linear var(--medio)}
+.opcoes.aberta{opacity:1;transform:none;pointer-events:auto;visibility:visible;
+  transition-delay:0s}
+.opcoes.acima{transform-origin:bottom center}
+.opcao{display:flex;align-items:center;gap:9px;padding:8px 10px;
+  border-radius:var(--raio-pp);cursor:pointer;font-size:13.5px;color:var(--texto-medio);
+  white-space:nowrap;
+  transition:background var(--rapido) var(--ease),color var(--rapido) var(--ease)}
+.opcao:hover,.opcao.ativa{background:var(--acento-tenue);color:var(--acento)}
+.opcao.marcada{color:var(--texto);font-weight:550}
+.opcao.marcada::after{content:"";margin-left:auto;width:5px;height:9px;flex:none;
+  border-right:1.8px solid var(--acento);border-bottom:1.8px solid var(--acento);
+  transform:rotate(45deg) translateY(-1px)}
+
+.busca-linha{display:flex;gap:9px}
+.busca-linha input{flex:2}
+.busca-linha .select-fluido{flex:1;min-width:150px}
+
+/* ===================================================================
+   Resultados da busca
+   =================================================================== */
+.resultados{max-height:calc(100vh - 268px);
+  margin:12px -18px -16px;padding-top:2px;border-top:1px solid var(--borda-suave)}
+.resultado{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;
+  padding:10px 18px;cursor:pointer;position:relative;
+  animation:surgir var(--medio) var(--ease) both;
+  animation-delay:calc(var(--i,0) * 14ms);
+  transition:background var(--rapido) var(--ease)}
+.resultado + .resultado::before{content:"";position:absolute;top:0;left:18px;right:18px;
+  height:1px;background:var(--borda-suave)}
+.resultado:hover{background:var(--acento-tenue)}
+.resultado:hover::before,.resultado:hover + .resultado::before{opacity:0}
+.resultado .desc{font-weight:500;line-height:1.4;color:var(--texto)}
+.resultado .meta{font-size:11.5px;color:var(--texto-fraco);
+  display:flex;gap:9px;flex-wrap:wrap;margin-top:3px;align-items:center}
+.resultado .meta code{background:var(--painel-2);border:1px solid var(--borda-suave);
+  padding:1px 6px;border-radius:5px;font-size:10.5px;color:var(--texto-medio)}
+.preco{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.preco .liq{font-weight:600;font-size:14px}
+.preco .bruto{font-size:11px;color:var(--texto-fraco);text-decoration:line-through;
+  margin-top:1px}
+.resultado .icone{opacity:.3;transition:opacity var(--rapido) var(--ease)}
+.resultado:hover .icone{opacity:1}
+.vazio{padding:34px 18px;text-align:center;color:var(--texto-fraco);font-size:13px}
+
+/* ===================================================================
+   Itens do pedido
+   =================================================================== */
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--texto-fraco);
+  text-align:left;padding:9px 8px;border-bottom:1px solid var(--borda-suave);font-weight:600}
+th:first-child{padding-left:18px} th:last-child{padding-right:18px}
+td{padding:9px 8px;border-bottom:1px solid var(--borda-suave);vertical-align:middle}
+td:first-child{padding-left:18px} td:last-child{padding-right:18px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{transition:background var(--rapido) var(--ease)}
+tbody tr:not(.avancado):hover{background:var(--painel-2)}
+tbody tr:not(.avancado){animation:surgir var(--medio) var(--ease) both}
+td input{padding:6px 8px;text-align:right;background:var(--painel)}
+td input.qtd{width:70px}
+td input.preco-edit{width:92px}
+.item-desc{font-weight:500;line-height:1.35}
+.item-meta{font-size:11px;color:var(--texto-fraco);margin-top:2px}
+.avancado{background:var(--painel-2)}
+.avancado td{padding:12px 8px 14px}
+.avancado .campos{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.marca{display:inline-block;font-size:10px;font-weight:600;padding:1.5px 7px;
+  border-radius:20px;background:var(--aviso-fundo);color:var(--aviso);
+  border:1px solid var(--aviso-borda);margin-left:7px;vertical-align:1px;
+  letter-spacing:.01em}
+.acoes-linha{display:flex;gap:2px;justify-content:flex-end}
+
+/* ===================================================================
+   Totais
+   =================================================================== */
+.totais{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;
+  padding:16px 18px;border-top:1px solid var(--borda-suave);background:var(--painel-2)}
+.total-cartao{background:var(--painel);border:1px solid var(--borda-suave);
+  border-radius:var(--raio-p);padding:10px 12px;
+  animation:surgir var(--medio) var(--ease) both;
+  animation-delay:calc(var(--i,0) * 35ms);
+  transition:border-color var(--medio) var(--ease),box-shadow var(--medio) var(--ease)}
+.total-cartao .rot{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--texto-fraco);font-weight:600}
+.total-cartao .val{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;
+  margin-top:3px;letter-spacing:-.02em}
+.total-cartao .val .moeda{font-size:11px;font-weight:500;color:var(--texto-fraco);
+  letter-spacing:0;margin-left:5px}
+.total-cartao.destaque{border-color:var(--acento);box-shadow:0 0 0 3px var(--acento-tenue)}
+.total-cartao.destaque .val{color:var(--acento)}
+.total-cartao.atencao .val{color:var(--aviso)}
+
+/* ===================================================================
+   Avisos, ações e rodapé de painel
+   =================================================================== */
+.aviso{display:flex;gap:9px;align-items:flex-start;
+  background:var(--aviso-fundo);border:1px solid var(--aviso-borda);
+  color:var(--aviso);padding:9px 13px;margin:0 18px 10px;border-radius:var(--raio-p);
+  font-size:12.5px;line-height:1.45;animation:surgir var(--medio) var(--ease) both}
+.aviso::before{content:"!";flex:none;width:15px;height:15px;border-radius:50%;
+  background:var(--aviso);color:var(--aviso-fundo);font-size:10px;font-weight:700;
+  display:grid;place-items:center;margin-top:1px}
+#avisos:not(:empty){padding-top:14px}
+.acoes{display:flex;gap:9px;padding:16px 18px;border-top:1px solid var(--borda-suave);
+  flex-wrap:wrap;align-items:center}
+.dica{font-size:12px;color:var(--texto-fraco);margin-top:8px;line-height:1.5}
+.selo-fornecedor{margin-left:auto;font-size:12px;color:var(--texto-fraco);
+  display:inline-flex;align-items:center;gap:6px}
+.selo-fornecedor b{color:var(--texto-medio);font-weight:600}
+.selo-fornecedor::before{content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--positivo);flex:none}
+
+.proforma-cartao{display:grid;grid-template-columns:1fr .9fr .7fr 1.2fr auto;gap:10px;
+  align-items:end;padding:12px 0;border-bottom:1px solid var(--borda-suave)}
+@media (max-width:760px){.proforma-cartao{grid-template-columns:1fr 1fr}}
+.proforma-cartao:first-child{padding-top:2px}
+.proforma-cartao:last-child{border-bottom:0;padding-bottom:2px}
+
+/* ===================================================================
+   Toast
+   =================================================================== */
+#toast{position:fixed;bottom:22px;left:50%;z-index:400;max-width:80vw;
+  transform:translateX(-50%) translateY(110px) scale(.96);opacity:0;
+  background:var(--texto);color:var(--painel);padding:11px 20px;
+  border-radius:var(--raio-p);box-shadow:var(--sombra-3);font-size:13px;font-weight:500;
+  transition:transform 420ms cubic-bezier(.16,1.1,.3,1), opacity var(--medio) var(--ease)}
+#toast.visivel{transform:translateX(-50%) translateY(0) scale(1);opacity:1}
+#toast.erro{background:var(--acento);color:#fff}
+
+/* ===================================================================
+   Página inicial
+   =================================================================== */
+#inicio{position:fixed;inset:0;z-index:200;background:var(--fundo);overflow-y:auto;
+  padding:44px 22px 70px;animation:surgir var(--medio) var(--ease)}
+#inicio .caixa{max-width:920px;margin:0 auto}
+#inicio .selo-marca{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--acento);margin-bottom:12px;display:block}
+#inicio h2{font-size:30px;letter-spacing:-.03em;margin-bottom:10px}
+#inicio .sub{color:var(--texto-medio);font-size:15.5px;line-height:1.6;
+  max-width:66ch;margin-bottom:32px}
+.passos{display:grid;grid-template-columns:repeat(auto-fit,minmax(198px,1fr));gap:13px;
+  margin-bottom:30px}
+.passo{background:var(--painel);border:1px solid var(--borda-suave);
+  border-radius:var(--raio);padding:16px;box-shadow:var(--sombra-1);
+  animation:subir var(--lento) var(--ease) both;
+  animation-delay:calc(var(--i,0) * 60ms);
+  transition:transform var(--medio) var(--ease),box-shadow var(--medio) var(--ease)}
+.passo:hover{transform:translateY(-2px);box-shadow:var(--sombra-2)}
+.passo .n{width:25px;height:25px;border-radius:8px;background:var(--acento-tenue);
+  color:var(--acento);display:grid;place-items:center;font-size:12px;font-weight:700;
+  margin-bottom:10px}
+.passo h3{font-size:13.5px;margin-bottom:5px}
+.passo p{font-size:12.8px;color:var(--texto-fraco);line-height:1.55}
+.glossario{background:var(--painel);border:1px solid var(--borda-suave);
+  border-radius:var(--raio);padding:6px 22px;box-shadow:var(--sombra-1);margin-bottom:28px;
+  animation:subir var(--lento) var(--ease) both;animation-delay:260ms}
+.glossario dl{margin:0}
+.glossario dt{font-weight:600;margin-top:17px;font-size:13.5px;
+  display:flex;align-items:center;gap:8px}
+.glossario dt::before{content:"";width:4px;height:4px;border-radius:50%;
+  background:var(--acento);flex:none}
+.glossario dd{margin:4px 0 17px 12px;color:var(--texto-fraco);font-size:13.2px;line-height:1.6}
+.glossario dd b{color:var(--texto-medio);font-weight:600}
+.glossario dd code{background:var(--painel-2);border:1px solid var(--borda-suave);
+  padding:1px 6px;border-radius:5px;font-size:11.5px;color:var(--texto-medio)}
+#inicio .acoes-inicio{display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  animation:subir var(--lento) var(--ease) both;animation-delay:320ms}
+#inicio .acoes-inicio button{padding:10px 18px}
+
+/* ===================================================================
+   Tour guiado
+   =================================================================== */
+#tour-foco{position:absolute;z-index:250;border-radius:11px;pointer-events:none;
+  box-shadow:0 0 0 2px var(--acento), 0 0 0 9999px var(--tour-escurecer);
+  transition:top var(--lento) var(--ease), left var(--lento) var(--ease),
+             width var(--lento) var(--ease), height var(--lento) var(--ease)}
+#tour-balao{position:absolute;z-index:251;background:var(--painel);
+  border:1px solid var(--borda);border-radius:var(--raio);box-shadow:var(--sombra-3);
+  padding:16px 18px;max-width:340px;animation:entrar-balao var(--medio) var(--ease)}
+#tour-balao h3{font-size:14px;margin-bottom:6px}
+#tour-balao p{margin-bottom:14px;font-size:13px;color:var(--texto-fraco);line-height:1.55}
+#tour-balao .rodape{display:flex;align-items:center;gap:8px}
+#tour-balao .contador{font-size:11.5px;color:var(--texto-fraco);margin-right:auto;
+  font-variant-numeric:tabular-nums}
+#tour-balao button{padding:6px 12px;font-size:13px}
+
+.escondido{display:none !important}
+</style>
+</head>
+<body>
+
+<!-- =================================================== página inicial -->
+<div id="inicio">
+  <div class="caixa">
+    <span class="selo-marca">Paraná em Rede · Augeo</span>
+    <h2>Automação de compras</h2>
+    <p class="sub">Monta a planilha <b>TOTAL PRICE AND PROFORMA</b> a partir das listas de
+      preço do fornecedor: você escolhe os itens, o sistema aplica o desconto e gera o
+      arquivo do Excel com todas as fórmulas prontas.</p>
+
+    <div class="passos">
+      <div class="passo" style="--i:0"><div class="n">1</div><h3>Busque os itens</h3>
+        <p>Procure no catálogo por descrição, tipo ou part number e clique para adicionar
+           ao pedido. O preço com desconto já aparece na lista.</p></div>
+      <div class="passo" style="--i:1"><div class="n">2</div><h3>Ajuste o pedido</h3>
+        <p>Digite as quantidades, o número da proforma, a data e o frete. Dá para dividir
+           a compra em mais de uma proforma.</p></div>
+      <div class="passo" style="--i:2"><div class="n">3</div><h3>Confira os totais</h3>
+        <p>Os valores são recalculados a cada mudança, com aviso quando a proforma declara
+           algo diferente do que está sendo comprado.</p></div>
+      <div class="passo" style="--i:3"><div class="n">4</div><h3>Gere a planilha</h3>
+        <p>Um clique baixa o arquivo <code>.xlsx</code> pronto para enviar, com as duas abas
+           ligadas por fórmula.</p></div>
+    </div>
+
+    <div class="glossario">
+      <dl>
+        <dt>As duas abas da planilha</dt>
+        <dd><b>NET PRICE</b> é o controle interno: um item por linha, com o preço já
+          descontado e o total da compra. <b>PROFORMA</b> é o pedido de compra em si —
+          com timbre, número, data e condições — e puxa os dados da aba de controle por
+          fórmula. Mudar uma quantidade lá atualiza tudo aqui, direto no Excel.</dd>
+
+        <dt>Preço bruto e preço líquido</dt>
+        <dd>As listas trazem o <i>Gross Price</i>. O sistema aplica o desconto negociado
+          (hoje <b id="glossario-desconto">44,5%</b>) e usa o resultado na planilha. Para
+          mudar o percentual, edite <code>config/comercial.yaml</code>.</dd>
+
+        <dt>Service Value</dt>
+        <dd>É a diferença entre <b>o que está sendo comprado</b> e <b>o que a proforma
+          declara</b>. Se você comprar 5 peças e declarar 6, a diferença aparece aqui
+          automaticamente — o total geral continua sendo o custo real da compra.</dd>
+
+        <dt>A logo do fornecedor</dt>
+        <dd>Sai sozinha, escolhida pelos itens do pedido: comprando produtos Securiton, a
+          proforma sai com a logo da Securiton. A sua logo fica sempre no canto esquerdo.</dd>
+
+        <dt>Listas novas a cada trimestre</dt>
+        <dd>Copie os arquivos novos para a pasta das listas e clique em
+          <b>Recarregar listas</b> no topo da tela. Não precisa configurar nada.</dd>
+      </dl>
+    </div>
+
+    <div class="acoes-inicio">
+      <button class="principal" onclick="entrar(true)">Começar com o guia passo a passo</button>
+      <button onclick="entrar(false)">Ir direto para o sistema</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================================================== aplicação -->
+<header class="topo">
+  <h1>Automação de compras <span>Securiton</span></h1>
+  <div class="stats" id="stats">
+    <span class="pilula"><b id="stat-itens">—</b> itens</span>
+    <span class="pilula"><b id="stat-sistemas">—</b> sistemas</span>
+    <span class="pilula">desconto <b id="stat-desconto">—</b></span>
+  </div>
+  <div class="acoes-topo">
+    <button class="fantasma" onclick="mostrarInicio()">Como usar</button>
+    <button class="fantasma" id="btn-recarregar" onclick="recarregarCatalogo()"
+      title="Reler as listas de preço do disco">Recarregar listas</button>
+    <button class="fantasma" onclick="location.href='/api/catalogo/exportar'">Catálogo em Excel</button>
+  </div>
+</header>
+
+<main>
+  <!-- ------------------------------------------------ busca -->
+  <section class="painel coluna-esquerda" id="painel-busca">
+    <header><h2>Catálogo</h2></header>
+    <div class="corpo">
+      <div class="busca-linha">
+        <input id="busca" placeholder="Buscar por descrição, tipo ou part number…" autofocus>
+        <select id="filtro-sistema"><option value="">Todos os sistemas</option></select>
+      </div>
+      <div class="resultados rolavel" id="resultados"></div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------ pedido -->
+  <section class="painel">
+    <header>
+      <h2>Pedido</h2>
+      <div class="acoes-topo">
+        <select id="pedidos-salvos" onchange="abrirPedido(this.value)" style="width:auto">
+          <option value="">Abrir pedido salvo…</option>
+        </select>
+        <button class="fantasma" onclick="limparPedido()">Novo</button>
+      </div>
+    </header>
+
+    <div class="corpo" id="dados-pedido">
+      <div class="campos">
+        <div><label for="referencia">Referência</label><input id="referencia" placeholder="Ex.: TRT Curitiba"></div>
+        <div><label for="cliente">Fornecedor / cliente</label><input id="cliente" placeholder="Securiton AG"></div>
+        <div><label for="data">Data</label><input id="data" type="date"></div>
+      </div>
+    </div>
+
+    <details open id="bloco-proformas">
+      <summary>Proformas <span id="contador-proformas" class="item-meta"></span></summary>
+      <div class="corpo" id="lista-proformas"></div>
+      <div class="corpo" style="padding-top:0">
+        <button onclick="adicionarProforma()">Dividir em outra proforma</button>
+        <div class="dica">Use mais de uma proforma quando a compra for faturada em remessas separadas.</div>
+      </div>
+    </details>
+
+    <div id="area-itens">
+      <table>
+        <thead><tr>
+          <th style="width:48px">Pos</th>
+          <th>Item</th>
+          <th class="num" style="width:80px">Qtd</th>
+          <th class="num" style="width:104px">Unit. líq.</th>
+          <th class="num" style="width:112px">Total</th>
+          <th style="width:74px"></th>
+        </tr></thead>
+        <tbody id="itens"></tbody>
+      </table>
+      <div class="vazio" id="itens-vazio">Nenhum item ainda — busque no catálogo ao lado.</div>
+    </div>
+
+    <details>
+      <summary>Condições gerais da proforma</summary>
+      <div class="corpo campos" style="grid-template-columns:1fr 1fr">
+        <div><label>Delivery terms</label><input id="c-delivery"></div>
+        <div><label>Payment terms</label><input id="c-payment"></div>
+        <div><label>Shipment terms</label><input id="c-shipment"></div>
+        <div><label>Modal</label><input id="c-modal"></div>
+        <div><label>Agent export</label><input id="c-agent"></div>
+        <div><label>Dados bancários (uma linha cada)</label><textarea id="c-banco"></textarea></div>
+      </div>
+      <div class="corpo" style="padding-top:0">
+        <label for="observacoes">Observações internas</label><textarea id="observacoes"></textarea>
+      </div>
+    </details>
+
+    <div id="avisos"></div>
+
+    <div class="totais" id="totais"></div>
+
+    <div class="acoes">
+      <button class="principal" id="btn-gerar" onclick="gerarPlanilha()">Gerar planilha</button>
+      <button onclick="salvarPedido()">Salvar pedido</button>
+      <button class="fantasma" onclick="baixarPedidoJson()">Exportar .json</button>
+      <span class="selo-fornecedor escondido" id="selo-fornecedor"></span>
+    </div>
+  </section>
+</main>
+
+<div id="tour-foco" class="escondido"></div>
+<div id="tour-balao" class="escondido"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+// --------------------------------------------------------------------------
+// Estado
+// --------------------------------------------------------------------------
+const estado = {
+  config: null,
+  linhas: [],       // {part_number, quantidade, proforma, preco_unitario?, quantidade_proforma?,
+                    //  preco_proforma?, _meta:{descricao,tipo,sistema,preco_liquido,preco_bruto}}
+  proformas: [{numero:"", data:hoje(), frete:0}],
+  expandido: new Set(),
+  resumo: null,
+};
+
+const CHAVE_VISITA = "augeo-compras:ja-usou";
+
+function hoje(){ return new Date().toISOString().slice(0,10); }
+const $ = (id) => document.getElementById(id);
+const num = (v) => (Number(v)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc = (t) => String(t??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function aviso(msg, erro=false){
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "visivel" + (erro ? " erro" : "");
+  clearTimeout(aviso._t);
+  aviso._t = setTimeout(() => t.className = "", erro ? 6000 : 2800);
+}
+
+async function api(caminho, opcoes={}){
+  const resposta = await fetch(caminho, opcoes);
+  if(!resposta.ok){
+    let detalhe = resposta.statusText;
+    try { detalhe = (await resposta.json()).detail || detalhe; } catch(e){}
+    throw new Error(detalhe);
+  }
+  return resposta;
+}
+
+// --------------------------------------------------------------------------
+// Select fluido
+//
+// A lista de opções nativa do <select> não aceita estilo. Em vez de trocar o
+// elemento, o <select> continua no DOM (escondido) e passa a ser comandado por
+// um gatilho e uma lista próprios — assim `.value`, `onchange` e a reconstrução
+// das opções por innerHTML seguem funcionando como antes.
+// --------------------------------------------------------------------------
+function fecharSelects(){
+  document.querySelectorAll(".select-fluido.aberto").forEach(c => c._fechar?.());
+}
+
+function fluidificarSelects(){
+  fecharSelects();   // nenhuma lista pode sobrar solta ao redesenhar a tela
+  document.querySelectorAll("select:not([data-fluido])").forEach(select => {
+    select.dataset.fluido = "1";
+    const caixa = document.createElement("div");
+    caixa.className = "select-fluido";
+    if(select.style.width) caixa.style.width = select.style.width;
+    select.parentNode.insertBefore(caixa, select);
+    caixa.append(select);
+
+    const gatilho = document.createElement("button");
+    gatilho.type = "button";
+    gatilho.className = "gatilho";
+    gatilho.innerHTML = '<span class="valor"></span><span class="seta"></span>';
+    const lista = document.createElement("div");
+    lista.className = "opcoes rolavel";
+    lista.setAttribute("role", "listbox");
+    caixa.append(gatilho, lista);
+
+    const rotular = () => {
+      gatilho.querySelector(".valor").textContent =
+        select.selectedOptions[0]?.text || "";
+    };
+    const fechar = () => {
+      caixa.classList.remove("aberto");
+      lista.classList.remove("aberta", "acima");
+      caixa.append(lista);   // volta para dentro do campo
+    };
+    caixa._fechar = fechar;
+
+    const abrir = () => {
+      // As opções são lidas na hora: selects que se reconstroem (sistemas,
+      // pedidos salvos, proformas) ficam sempre em dia sem observador.
+      lista.innerHTML = "";
+      [...select.options].forEach((opcao, i) => {
+        const linha = document.createElement("div");
+        linha.className = "opcao" + (i === select.selectedIndex ? " marcada" : "");
+        linha.setAttribute("role", "option");
+        linha.textContent = opcao.text;
+        linha.onclick = () => {
+          select.selectedIndex = i;
+          rotular();
+          fechar();
+          select.dispatchEvent(new Event("change", {bubbles:true}));
+        };
+        lista.append(linha);
+      });
+
+      document.body.append(lista);
+      const r = gatilho.getBoundingClientRect();
+      lista.style.minWidth = r.width + "px";
+      lista.style.maxWidth = Math.min(460, innerWidth - 24) + "px";
+      lista.style.top = lista.style.bottom = "";
+      caixa.classList.add("aberto");
+      lista.classList.add("aberta");
+
+      // Abre para cima quando não cabe embaixo, e nunca ultrapassa a janela.
+      const altura = lista.offsetHeight;
+      const espacoAbaixo = innerHeight - r.bottom;
+      const paraCima = espacoAbaixo < altura + 14 && r.top > espacoAbaixo;
+      lista.classList.toggle("acima", paraCima);
+      if(paraCima) lista.style.bottom = (innerHeight - r.top + 6) + "px";
+      else lista.style.top = (r.bottom + 6) + "px";
+      lista.style.left = Math.max(12,
+        Math.min(r.left, innerWidth - lista.offsetWidth - 12)) + "px";
+
+      lista.querySelector(".marcada")?.scrollIntoView({block:"nearest"});
+    };
+
+    gatilho.onclick = (e) => {
+      e.stopPropagation();
+      const jaAberto = caixa.classList.contains("aberto");
+      fecharSelects();
+      if(!jaAberto) abrir();
+    };
+    gatilho.onkeydown = (e) => {
+      if(e.key === "Escape") return fechar();
+      if(["ArrowDown","ArrowUp","Enter"," "].includes(e.key)){
+        e.preventDefault();
+        if(!caixa.classList.contains("aberto")) return abrir();
+      }
+      if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+        const opcoes = [...lista.children];
+        const atual = opcoes.findIndex(o => o.classList.contains("ativa"));
+        const base = atual >= 0 ? atual : select.selectedIndex;
+        const proximo = Math.max(0, Math.min(opcoes.length - 1,
+          base + (e.key === "ArrowDown" ? 1 : -1)));
+        opcoes.forEach(o => o.classList.remove("ativa"));
+        opcoes[proximo]?.classList.add("ativa");
+        opcoes[proximo]?.scrollIntoView({block:"nearest"});
+      } else if(e.key === "Enter"){
+        lista.querySelector(".ativa")?.click();
+      }
+    };
+    select.addEventListener("change", rotular);
+    rotular();
+  });
+
+  // Rótulos podem ter mudado por código (ex.: limparPedido).
+  document.querySelectorAll(".select-fluido").forEach(caixa => {
+    const select = caixa.querySelector("select");
+    const valor = caixa.querySelector(".valor");
+    if(select && valor) valor.textContent = select.selectedOptions[0]?.text || "";
+  });
+}
+
+document.addEventListener("click", (e) => {
+  if(!e.target.closest(".opcoes")) fecharSelects();
+});
+document.addEventListener("keydown", (e) => { if(e.key === "Escape") fecharSelects(); });
+// A lista fica presa à janela: rolar a página a deixaria fora de lugar
+// (rolar dentro da própria lista, claro, não conta).
+addEventListener("scroll", (e) => {
+  if(e.target instanceof Element && e.target.closest(".opcoes")) return;
+  fecharSelects();
+}, true);
+addEventListener("resize", fecharSelects);
+
+// --------------------------------------------------------------------------
+// Página inicial
+// --------------------------------------------------------------------------
+function mostrarInicio(){ $("inicio").classList.remove("escondido"); encerrarTour(); }
+
+function entrar(comTour){
+  $("inicio").classList.add("escondido");
+  try { localStorage.setItem(CHAVE_VISITA, "1"); } catch(e){}
+  if(comTour) iniciarTour();
+}
+
+// --------------------------------------------------------------------------
+// Tour guiado
+// --------------------------------------------------------------------------
+const PASSOS_TOUR = [
+  {alvo:"#stats", titulo:"O catálogo carregado",
+   texto:"Quantos itens foram lidos das listas de preço, quantos sistemas e o desconto que está sendo aplicado sobre o preço de lista."},
+  {alvo:"#busca", titulo:"Buscar itens",
+   texto:"Digite parte da descrição, o tipo (ex.: ASD 535-3) ou o part number. A busca ignora acentos e a ordem das palavras."},
+  {alvo:"#resultados", titulo:"Resultados do catálogo",
+   texto:"Cada linha mostra o preço já com desconto e, riscado abaixo, o preço de lista. Clique para adicionar ao pedido — clicar de novo aumenta a quantidade."},
+  {alvo:"#dados-pedido", titulo:"Identificação do pedido",
+   texto:"A referência dá nome ao arquivo gerado e ao pedido salvo. A data é a que aparece no timbre da proforma."},
+  {alvo:"#bloco-proformas", titulo:"Proformas",
+   texto:"Número, data, frete e condições de pagamento de cada proforma. Se a compra for faturada em remessas separadas, crie mais de uma — sai uma aba para cada."},
+  {alvo:"#area-itens", titulo:"Os itens do pedido",
+   texto:"Ajuste a quantidade e, se precisar, o preço unitário. O botão de engrenagem abre os ajustes da proforma: quantidade ou preço declarados diferentes do que está sendo comprado."},
+  {alvo:"#totais", titulo:"Os totais",
+   texto:"Total da compra é o custo real. Valor faturado é o que as proformas declaram. Service Value é a diferença entre os dois — igual ao que a planilha antiga calculava à mão."},
+  {alvo:"#selo-fornecedor", titulo:"A logo da proforma",
+   texto:"Escolhida sozinha pelos itens do pedido. Comprando produtos Securiton, a proforma sai com a logo da Securiton."},
+  {alvo:"#btn-gerar", titulo:"Gerar a planilha",
+   texto:"Baixa o arquivo .xlsx com a aba de controle e a(s) proforma(s), com todas as fórmulas ligadas. Uma cópia fica em data/saida/."},
+  {alvo:"#btn-recarregar", titulo:"Listas novas",
+   texto:"Quando chegarem as listas do próximo trimestre, copie os arquivos para a pasta das listas e clique aqui. Nada mais precisa ser configurado."},
+];
+
+let passoAtual = 0;
+
+function iniciarTour(){
+  passoAtual = 0;
+  mostrarPasso();
+  window.addEventListener("resize", mostrarPasso);
+  document.addEventListener("keydown", teclaTour);
+}
+
+function teclaTour(evento){
+  if(evento.key === "Escape") encerrarTour();
+  else if(evento.key === "ArrowRight" || evento.key === "Enter") proximoPasso();
+  else if(evento.key === "ArrowLeft") passoAnterior();
+}
+
+function encerrarTour(){
+  $("tour-foco").classList.add("escondido");
+  $("tour-balao").classList.add("escondido");
+  window.removeEventListener("resize", mostrarPasso);
+  document.removeEventListener("keydown", teclaTour);
+}
+
+function proximoPasso(){
+  if(passoAtual >= PASSOS_TOUR.length - 1) return encerrarTour();
+  passoAtual++; mostrarPasso();
+}
+
+function passoAnterior(){
+  if(passoAtual > 0){ passoAtual--; mostrarPasso(); }
+}
+
+function mostrarPasso(){
+  const passo = PASSOS_TOUR[passoAtual];
+  const alvo = document.querySelector(passo.alvo);
+  // Alvos que ainda não existem na tela (ex.: os totais num pedido vazio)
+  // são pulados em vez de virarem um destaque de tamanho zero.
+  if(!alvo || !alvo.getBoundingClientRect().height) return proximoPasso();
+
+  const balao = $("tour-balao");
+  balao.classList.remove("escondido");
+  balao.innerHTML = `
+    <h3>${esc(passo.titulo)}</h3>
+    <p>${esc(passo.texto)}</p>
+    <div class="rodape">
+      <span class="contador">${passoAtual+1} de ${PASSOS_TOUR.length}</span>
+      <button class="fantasma" onclick="encerrarTour()">Pular</button>
+      ${passoAtual > 0 ? '<button onclick="passoAnterior()">Voltar</button>' : ""}
+      <button class="principal" onclick="proximoPasso()">
+        ${passoAtual === PASSOS_TOUR.length-1 ? "Concluir" : "Próximo"}</button>
+    </div>`;
+
+  posicionarTour(alvo);
+  alvo.scrollIntoView({block:"center", behavior:"smooth"});
+  // Reposiciona depois que a rolagem assenta, para o balão escolher bem entre
+  // ficar acima ou abaixo do alvo.
+  clearTimeout(mostrarPasso._t);
+  mostrarPasso._t = setTimeout(() => posicionarTour(alvo), 320);
+}
+
+function posicionarTour(alvo){
+  const caixa = alvo.getBoundingClientRect();
+  const margem = 7;
+
+  const foco = $("tour-foco");
+  foco.classList.remove("escondido");
+  foco.style.top    = (caixa.top + scrollY - margem) + "px";
+  foco.style.left   = (caixa.left + scrollX - margem) + "px";
+  foco.style.width  = (caixa.width + margem*2) + "px";
+  foco.style.height = (caixa.height + margem*2) + "px";
+
+  const balao = $("tour-balao");
+  const altura = balao.offsetHeight, largura = balao.offsetWidth;
+  const cabeAbaixo = caixa.bottom + altura + 20 < innerHeight;
+  balao.style.top = (cabeAbaixo ? caixa.bottom + scrollY + 14
+                                : Math.max(scrollY + 14, caixa.top + scrollY - altura - 14)) + "px";
+  balao.style.left = Math.max(14,
+    Math.min(caixa.left + scrollX, scrollX + innerWidth - largura - 14)) + "px";
+}
+
+// --------------------------------------------------------------------------
+// Inicialização
+// --------------------------------------------------------------------------
+async function iniciar(){
+  $("data").value = hoje();
+  try {
+    estado.config = await (await api("/api/config")).json();
+  } catch(e){ return aviso("Não foi possível carregar a configuração: "+e.message, true); }
+
+  const c = estado.config;
+  const desconto = c.desconto_percentual.toString().replace(".", ",") + "%";
+  $("stat-itens").textContent = c.total_itens;
+  $("stat-sistemas").textContent = c.sistemas.length;
+  $("stat-desconto").textContent = desconto;
+  $("glossario-desconto").textContent = desconto;
+  $("filtro-sistema").innerHTML = '<option value="">Todos os sistemas</option>' +
+    c.sistemas.map(s => `<option>${esc(s)}</option>`).join("");
+
+  const cond = c.condicoes_padrao || {};
+  $("c-delivery").value = cond.delivery_terms || "";
+  $("c-payment").value  = cond.payment_terms  || "";
+  $("c-shipment").value = cond.shipment_terms || "";
+  $("c-modal").value    = cond.modal          || "";
+  $("c-agent").value    = cond.agent_export   || "";
+  $("c-banco").value    = (cond.banco || []).join("\n");
+
+  if(c.avisos_catalogo?.length) aviso(c.avisos_catalogo.length + " aviso(s) na leitura das listas");
+
+  desenharProformas();
+  desenharItens();
+  buscar();
+  listarPedidosSalvos();
+  fluidificarSelects();
+
+  // Quem já usou entra direto; no primeiro uso, a página inicial fica aberta.
+  let jaUsou = false;
+  try { jaUsou = localStorage.getItem(CHAVE_VISITA) === "1"; } catch(e){}
+  if(jaUsou) $("inicio").classList.add("escondido");
+}
+
+// --------------------------------------------------------------------------
+// Catálogo
+// --------------------------------------------------------------------------
+let temporizadorBusca;
+$("busca").addEventListener("input", () => {
+  clearTimeout(temporizadorBusca);
+  temporizadorBusca = setTimeout(buscar, 180);
+});
+$("filtro-sistema").addEventListener("change", buscar);
+
+async function buscar(){
+  const q = $("busca").value.trim();
+  const sistema = $("filtro-sistema").value;
+  const url = `/api/catalogo/buscar?q=${encodeURIComponent(q)}&sistema=${encodeURIComponent(sistema)}&limite=60`;
+  let itens = [];
+  try { itens = (await (await api(url)).json()).itens; }
+  catch(e){ return aviso("Erro na busca: "+e.message, true); }
+
+  const alvo = $("resultados");
+  if(!itens.length){ alvo.innerHTML = '<div class="vazio">Nenhum item encontrado.</div>'; return; }
+  // Com um sistema filtrado, repetir o nome em toda linha só polui a lista.
+  const mostrarSistema = !sistema;
+  alvo.innerHTML = itens.map((item, i) => `
+    <div class="resultado" style="--i:${Math.min(i, 14)}"
+         onclick='adicionarItem(${JSON.stringify(item).replace(/'/g,"&#39;")})'>
+      <div>
+        <div class="desc">${esc(item.descricao)}</div>
+        <div class="meta">
+          <code>${esc(item.part_number)}</code>
+          ${item.tipo ? `<span>${esc(item.tipo)}</span>` : ""}
+          ${mostrarSistema ? `<span>${esc(item.sistema)}</span>` : ""}
+        </div>
+      </div>
+      <div class="preco">
+        <div class="liq">${num(item.preco_liquido)}</div>
+        <div class="bruto">${num(item.preco_bruto)}</div>
+      </div>
+      <button class="icone" title="Adicionar ao pedido">+</button>
+    </div>`).join("");
+}
+
+async function recarregarCatalogo(){
+  try {
+    const dados = await (await api("/api/catalogo/recarregar", {method:"POST"})).json();
+    $("stat-itens").textContent = dados.total_itens;
+    $("stat-sistemas").textContent = dados.sistemas.length;
+    aviso("Listas recarregadas: " + dados.total_itens + " itens");
+    buscar();
+  } catch(e){ aviso("Falha ao recarregar: "+e.message, true); }
+}
+
+// --------------------------------------------------------------------------
+// Itens do pedido
+// --------------------------------------------------------------------------
+function adicionarItem(item){
+  const existente = estado.linhas.find(l => l.part_number === item.part_number);
+  if(existente){
+    existente.quantidade += 1;
+    aviso(`${item.part_number}: quantidade ${existente.quantidade}`);
+  } else {
+    estado.linhas.push({
+      part_number: item.part_number, quantidade: 1, proforma: 1,
+      _meta: {descricao:item.descricao, tipo:item.tipo, sistema:item.sistema,
+              preco_liquido:item.preco_liquido, preco_bruto:item.preco_bruto},
+    });
+  }
+  desenharItens();
+}
+
+function removerItem(indice){
+  estado.linhas.splice(indice, 1);
+  estado.expandido.delete(indice);
+  desenharItens();
+}
+
+function alterar(indice, campo, valor){
+  const linha = estado.linhas[indice];
+  if(valor === "" || valor === null){ delete linha[campo]; }
+  else if(campo === "proforma"){ linha[campo] = parseInt(valor) || 1; }
+  else { linha[campo] = Number(valor); }
+  atualizarResumo();
+}
+
+function alternarAvancado(indice){
+  estado.expandido.has(indice) ? estado.expandido.delete(indice) : estado.expandido.add(indice);
+  desenharItens();
+}
+
+function desenharItens(){
+  const corpo = $("itens");
+  $("itens-vazio").style.display = estado.linhas.length ? "none" : "block";
+  const passo = 10, inicio = 10;
+  const opcoesProforma = estado.proformas.map((p,i) =>
+    `<option value="${i+1}">Proforma ${i+1}${p.numero ? " ("+esc(p.numero)+")" : ""}</option>`).join("");
+
+  corpo.innerHTML = estado.linhas.map((linha, indice) => {
+    const meta = linha._meta || {};
+    const preco = linha.preco_unitario ?? meta.preco_liquido ?? 0;
+    const total = preco * (linha.quantidade || 0);
+    const divergente = (linha.quantidade_proforma != null && linha.quantidade_proforma !== linha.quantidade)
+                    || (linha.preco_proforma != null && linha.preco_proforma !== preco);
+    const aberto = estado.expandido.has(indice);
+    return `
+    <tr style="--i:${Math.min(indice, 12)}">
+      <td class="num item-meta">${inicio + indice*passo}</td>
+      <td>
+        <div class="item-desc">${esc(meta.descricao || linha.part_number)}
+          ${divergente ? '<span class="marca">proforma difere</span>' : ""}</div>
+        <div class="item-meta">${esc(linha.part_number)}${meta.tipo ? " · "+esc(meta.tipo) : ""}
+          ${estado.proformas.length > 1 ? " · proforma "+linha.proforma : ""}</div>
+      </td>
+      <td class="num"><input class="qtd" type="number" min="0" step="1" value="${linha.quantidade}"
+            onchange="alterar(${indice},'quantidade',this.value); desenharItens()"></td>
+      <td class="num"><input class="preco-edit" type="number" step="0.01" value="${preco.toFixed(2)}"
+            onchange="alterar(${indice},'preco_unitario',this.value); desenharItens()"></td>
+      <td class="num"><b>${num(total)}</b></td>
+      <td><div class="acoes-linha">
+        <button class="icone" title="Ajustes da proforma"
+          onclick="alternarAvancado(${indice})">${aberto ? "▴" : "⚙"}</button>
+        <button class="icone" title="Remover item" onclick="removerItem(${indice})">✕</button>
+      </div></td>
+    </tr>
+    ${aberto ? `
+    <tr class="avancado"><td></td><td colspan="5">
+      <div class="campos">
+        <div><label>Proforma</label><select onchange="alterar(${indice},'proforma',this.value); desenharItens()">
+          ${opcoesProforma.replace(`value="${linha.proforma}"`, `value="${linha.proforma}" selected`)}
+        </select></div>
+        <div><label>Qtd. na proforma</label>
+          <input type="number" min="0" step="1" placeholder="${linha.quantidade}"
+            value="${linha.quantidade_proforma ?? ""}"
+            onchange="alterar(${indice},'quantidade_proforma',this.value); desenharItens()"></div>
+        <div><label>Preço na proforma</label>
+          <input type="number" step="0.01" placeholder="${preco.toFixed(2)}"
+            value="${linha.preco_proforma ?? ""}"
+            onchange="alterar(${indice},'preco_proforma',this.value); desenharItens()"></div>
+      </div>
+      <div class="dica">Deixe em branco para declarar na proforma o mesmo que está sendo comprado.
+        Qualquer diferença vira <b>Service Value</b> na aba de controle.</div>
+    </td></tr>` : ""}`;
+  }).join("");
+  fluidificarSelects();
+  atualizarResumo();
+}
+
+// --------------------------------------------------------------------------
+// Proformas
+// --------------------------------------------------------------------------
+function desenharProformas(){
+  $("contador-proformas").textContent = estado.proformas.length > 1 ? `(${estado.proformas.length})` : "";
+  $("lista-proformas").innerHTML = estado.proformas.map((p, i) => `
+    <div class="proforma-cartao">
+      <div><label>Número da proforma ${i+1}</label>
+        <input value="${esc(p.numero)}" onchange="alterarProforma(${i},'numero',this.value)"></div>
+      <div><label>Data</label>
+        <input type="date" value="${p.data}" onchange="alterarProforma(${i},'data',this.value)"></div>
+      <div><label>Frete</label>
+        <input type="number" step="0.01" value="${p.frete}" onchange="alterarProforma(${i},'frete',this.value)"></div>
+      <div><label>Payment terms (opcional)</label>
+        <input value="${esc(p.payment_terms || "")}" placeholder="usa o padrão"
+          onchange="alterarProforma(${i},'payment_terms',this.value)"></div>
+      <div>${estado.proformas.length > 1
+        ? `<button class="icone" onclick="removerProforma(${i})" title="Remover proforma">✕</button>` : ""}</div>
+    </div>`).join("");
+}
+
+function alterarProforma(indice, campo, valor){
+  estado.proformas[indice][campo] = campo === "frete" ? (Number(valor)||0) : valor;
+  desenharProformas(); desenharItens();
+}
+
+function adicionarProforma(){
+  estado.proformas.push({numero:"", data:$("data").value || hoje(), frete:0});
+  desenharProformas(); desenharItens();
+}
+
+function removerProforma(indice){
+  estado.proformas.splice(indice, 1);
+  estado.linhas.forEach(l => { if(l.proforma > estado.proformas.length) l.proforma = estado.proformas.length; });
+  desenharProformas(); desenharItens();
+}
+
+// --------------------------------------------------------------------------
+// Montagem do pedido e totais
+// --------------------------------------------------------------------------
+function montarPedido(){
+  const condicoes = {
+    delivery_terms: $("c-delivery").value, payment_terms: $("c-payment").value,
+    shipment_terms: $("c-shipment").value, modal: $("c-modal").value,
+    agent_export: $("c-agent").value,
+    banco: $("c-banco").value.split("\n").map(s => s.trim()).filter(Boolean),
+  };
+  return {
+    referencia: $("referencia").value, cliente: $("cliente").value,
+    data: $("data").value || hoje(), observacoes: $("observacoes").value,
+    // Cada proforma herda as condições gerais; `payment_terms` pode ser
+    // sobrescrito por proforma (ex.: 60 dias na primeira, 90 na segunda).
+    proformas: estado.proformas.map(p => ({
+      numero: p.numero, data: p.data, frete: p.frete,
+      condicoes: {...condicoes, payment_terms: p.payment_terms || condicoes.payment_terms},
+    })),
+    linhas: estado.linhas.map(({_meta, ...linha}) => linha),
+  };
+}
+
+let temporizadorResumo;
+function atualizarResumo(){
+  clearTimeout(temporizadorResumo);
+  temporizadorResumo = setTimeout(async () => {
+    if(!estado.linhas.length){
+      $("totais").innerHTML = ""; $("avisos").innerHTML = "";
+      $("selo-fornecedor").classList.add("escondido");
+      return;
+    }
+    try {
+      const resumo = await (await api("/api/pedido/resumo", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(montarPedido()),
+      })).json();
+      estado.resumo = resumo;
+      desenharTotais(resumo);
+    } catch(e){
+      $("avisos").innerHTML = `<div class="aviso">${esc(e.message)}</div>`;
+    }
+  }, 120);
+}
+
+function desenharTotais(resumo){
+  const moeda = estado.config?.moeda || "EUR";
+  const cartao = (rot, val, i, classe="") =>
+    `<div class="total-cartao ${classe}" style="--i:${i}">
+       <div class="rot">${rot}</div>
+       <div class="val">${num(val)}<span class="moeda">${moeda}</span></div>
+     </div>`;
+  $("totais").innerHTML =
+    cartao("Total da compra", resumo.total_controle, 0) +
+    cartao("Frete", resumo.frete_total, 1) +
+    cartao("Valor faturado", resumo.valor_faturado, 2) +
+    cartao("Valor de serviço", resumo.valor_servico, 3,
+           Math.abs(resumo.valor_servico) > 0.005 ? "atencao" : "") +
+    cartao("Total geral", resumo.total_geral, 4, "destaque");
+
+  const selo = $("selo-fornecedor");
+  selo.classList.toggle("escondido", !resumo.fornecedor);
+  if(resumo.fornecedor)
+    selo.innerHTML = `Logo da proforma: <b>${esc(resumo.fornecedor.nome || resumo.fornecedor.id)}</b>`;
+
+  const alertas = [...(resumo.avisos || [])];
+  const divergentes = resumo.linhas.filter(l => l.divergente).length;
+  if(divergentes) alertas.push(`${divergentes} linha(s) declaram na proforma quantidade ou preço diferente da compra.`);
+  if(resumo.fornecedores_misturados)
+    alertas.push("O pedido mistura fornecedores — a logo usada é a do fornecedor com mais itens.");
+  $("avisos").innerHTML = alertas.map(a => `<div class="aviso">${esc(a)}</div>`).join("");
+}
+
+// --------------------------------------------------------------------------
+// Ações
+// --------------------------------------------------------------------------
+async function gerarPlanilha(){
+  if(!estado.linhas.length) return aviso("Adicione ao menos um item.", true);
+  try {
+    const resposta = await api("/api/pedido/gerar", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(montarPedido()),
+    });
+    const blob = await resposta.blob();
+    const nome = (resposta.headers.get("content-disposition") || "")
+      .match(/filename="?([^"]+)"?/)?.[1] || "proforma.xlsx";
+    const url = URL.createObjectURL(blob);
+    const link = Object.assign(document.createElement("a"), {href:url, download:nome});
+    document.body.appendChild(link); link.click(); link.remove();
+    URL.revokeObjectURL(url);
+    aviso("Planilha gerada: " + nome);
+  } catch(e){ aviso("Erro ao gerar: "+e.message, true); }
+}
+
+async function salvarPedido(){
+  if(!$("referencia").value.trim()) return aviso("Dê uma referência ao pedido antes de salvar.", true);
+  try {
+    const dados = await (await api("/api/pedidos", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(montarPedido()),
+    })).json();
+    aviso("Pedido salvo como " + dados.arquivo);
+    listarPedidosSalvos();
+  } catch(e){ aviso("Erro ao salvar: "+e.message, true); }
+}
+
+function baixarPedidoJson(){
+  const blob = new Blob([JSON.stringify(montarPedido(), null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement("a"),
+    {href:url, download:($("referencia").value || "pedido") + ".json"});
+  document.body.appendChild(link); link.click(); link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function listarPedidosSalvos(){
+  try {
+    const dados = await (await api("/api/pedidos")).json();
+    $("pedidos-salvos").innerHTML = '<option value="">Abrir pedido salvo…</option>' +
+      dados.pedidos.map(p => `<option value="${esc(p.nome)}">${esc(p.nome)}</option>`).join("");
+    fluidificarSelects();
+  } catch(e){ /* lista vazia é normal */ }
+}
+
+async function abrirPedido(nome){
+  if(!nome) return;
+  try {
+    const pedido = await (await api("/api/pedidos/" + encodeURIComponent(nome))).json();
+    $("referencia").value = pedido.referencia || "";
+    $("cliente").value = pedido.cliente || "";
+    $("data").value = pedido.data || hoje();
+    $("observacoes").value = pedido.observacoes || "";
+    estado.proformas = (pedido.proformas || []).map(p => ({
+      numero:p.numero || "", data:p.data || hoje(), frete:p.frete || 0,
+      payment_terms: p.condicoes?.payment_terms || ""}));
+    if(!estado.proformas.length) estado.proformas = [{numero:"", data:hoje(), frete:0}];
+
+    const primeira = (pedido.proformas || [])[0];
+    if(primeira?.condicoes){
+      const c = primeira.condicoes;
+      $("c-delivery").value = c.delivery_terms || ""; $("c-payment").value = c.payment_terms || "";
+      $("c-shipment").value = c.shipment_terms || ""; $("c-modal").value = c.modal || "";
+      $("c-agent").value = c.agent_export || ""; $("c-banco").value = (c.banco || []).join("\n");
+    }
+
+    estado.linhas = pedido.linhas || [];
+    estado.expandido.clear();
+    desenharProformas();
+    // Recupera descrição e preço de cada item para exibição na tela.
+    const resumo = await (await api("/api/pedido/resumo", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(pedido),
+    })).json();
+    resumo.linhas.forEach((l, i) => {
+      if(estado.linhas[i]) estado.linhas[i]._meta = {
+        descricao:l.descricao, tipo:l.tipo, sistema:"", preco_liquido:l.preco_unitario, preco_bruto:l.preco_bruto};
+    });
+    desenharItens();
+    aviso("Pedido carregado: " + nome);
+  } catch(e){ aviso("Erro ao abrir: "+e.message, true); }
+}
+
+function limparPedido(){
+  estado.linhas = [];
+  estado.proformas = [{numero:"", data:hoje(), frete:0}];
+  estado.expandido.clear();
+  $("referencia").value = ""; $("cliente").value = ""; $("observacoes").value = "";
+  $("data").value = hoje();
+  $("pedidos-salvos").value = "";
+  desenharProformas(); desenharItens(); fluidificarSelects();
+}
+
+["referencia","cliente","data"].forEach(id => $(id).addEventListener("change", atualizarResumo));
+iniciar();
+</script>
+</body>
+</html>

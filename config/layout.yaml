@@ -1,0 +1,102 @@
+# ---------------------------------------------------------------------------
+# Layout da planilha gerada. Mexer aqui muda a planilha inteira sem tocar em
+# código: ordem das colunas, rótulos, larguras, fontes e rótulos dos totais.
+#
+# `span` = quantas colunas do Excel a coluna ocupa (mescladas).
+# `larguras` = largura de cada uma dessas colunas do Excel.
+# ---------------------------------------------------------------------------
+
+abas:
+  controle: NET PRICE      # aba 1: dados de cada item (uso interno)
+  proforma: PROFORMA       # aba 2+: o pedido de compra em si
+
+colunas:
+  - chave: posicao
+    rotulo: Pos
+    span: 2
+    larguras: [8.43, 10.05]
+    alinhamento: center
+    formato: "0"
+    negrito: true
+  - chave: quantidade
+    rotulo: Quantity
+    span: 1
+    larguras: [8.43]
+    alinhamento: center
+    formato: "0"
+    fonte_tamanho: 9
+  - chave: part_number
+    rotulo: Part Number
+    span: 3
+    larguras: [8.43, 8.43, 6.63]
+    alinhamento: center
+    fonte_tamanho: 8
+    quebra_linha: true
+  - chave: descricao
+    rotulo: Description
+    span: 2
+    larguras: [8.43, 8.43]
+    alinhamento: center
+    fonte: Arial Narrow
+    fonte_tamanho: 8
+    quebra_linha: true
+  - chave: codigo
+    rotulo: Code
+    span: 1
+    larguras: [13.72]
+    alinhamento: center
+    fonte: Arial Narrow
+    fonte_tamanho: 8
+    quebra_linha: true
+  - chave: preco
+    rotulo: Preço {moeda}
+    span: 1
+    larguras: [13.08]
+    alinhamento: center
+    formato: "#,##0.00"
+    fonte_tamanho: 9
+  - chave: total
+    rotulo: Saldo {moeda}
+    span: 1
+    larguras: [13.08]
+    alinhamento: center
+    formato: "#,##0.00"
+    fonte_tamanho: 9
+
+estilo:
+  fonte: Arial
+  fonte_tamanho: 10
+  fonte_cabecalho_tabela: Arial
+  tamanho_cabecalho_tabela: 10
+  altura_linha_cabecalho: 25.4
+  altura_linha_item_minima: 30
+  altura_linha_item_maxima: 75
+  # Caracteres que cabem por linha na coluna de descrição (usado para estimar
+  # a altura de cada linha da tabela).
+  caracteres_por_linha_descricao: 26
+
+totais:
+  # Rótulos dos blocos de totalização. Textos livres.
+  subtotal: SUBTOTAL
+  frete: FREIGHT
+  total: TOTAL
+  # Bloco de conciliação da aba de controle.
+  total_controle: TOTAL
+  valor_faturado: Invoice Value
+  valor_servico: Service Value
+  total_geral: Total
+
+rodape:
+  titulo: Condições gerais
+  delivery_terms: "DELIVERY TERMS"
+  payment_terms: "PAYMENT TERMS:"
+  shipment_terms: "SHIPMENT TERMS:"
+  agent_export: "AGENT EXPORT"
+  # Em qual coluna do Excel (1 = A) começam os valores das condições gerais.
+  coluna_valor: 5
+
+pagina:
+  orientacao: portrait      # portrait | landscape
+  papel: A4
+  ajustar_largura: true     # encaixa a tabela em 1 página de largura
+  escala: 70
