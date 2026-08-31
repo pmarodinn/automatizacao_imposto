@@ -4,12 +4,44 @@ Gera as planilhas **TOTAL PRICE AND PROFORMA** a partir das listas de preço da
 Securiton: você escolhe os itens e as quantidades, o sistema aplica o desconto,
 monta a aba de controle e a(s) proforma(s) com todas as fórmulas ligadas.
 
+### ▶ Usar agora, sem instalar nada
+
+**<https://pmarodinn.github.io/automatizacao_imposto/>**
+
+A mesma interface, rodando **inteiramente dentro do navegador**: o código Python
+é o mesmo, compilado para WebAssembly. Abra o endereço, carregue suas listas de
+preço, informe o desconto e gere a planilha. Nada é enviado para servidor
+nenhum — as listas e os pedidos ficam guardados na sua própria máquina.
+
 > Não sabe o que as planilhas originais faziam? Está tudo mapeado em
-> [`docs/ANALISE_PLANILHAS.md`](docs/ANALISE_PLANILHAS.md).
+> [`ANALISE_PLANILHAS.md`](ANALISE_PLANILHAS.md).
 
 ---
 
-## Instalação (uma vez só)
+## Os dois modos de uso
+
+A interface é uma só; o que muda é onde o Python roda.
+
+| | Site publicado | Servidor local |
+|---|---|---|
+| Como abrir | um endereço no navegador | `augeo-compras web` |
+| Onde o Python roda | no navegador (WebAssembly) | na sua máquina |
+| Listas de preço | você carrega os arquivos; ficam no navegador | lidas da pasta em `catalogo.yaml` |
+| Desconto | informado na tela | vem de `config/comercial.yaml` |
+| Pedidos salvos | guardados no navegador | em `data/pedidos/` |
+| Precisa instalar | nada | Python + `pip install -e .` |
+
+A tela decide sozinha: havendo servidor local, fala com ele; não havendo, sobe o
+Python dentro do navegador. Os dois usam exatamente o mesmo código de catálogo,
+preços e geração de planilha.
+
+Para republicar o site depois de mexer no sistema:
+
+```bash
+python3 ferramentas/gerar_site.py
+```
+
+## Instalação do servidor local (uma vez só)
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e .
@@ -239,7 +271,8 @@ config/                 configuração em YAML (é aqui que se ajusta o sistema)
 logo/                   logotipos (o da empresa e o de cada fornecedor)
 data/pedidos/           pedidos salvos (.json)
 data/saida/             planilhas geradas
-docs/                   análise das planilhas originais
+docs/                   site publicado (gerado por ferramentas/gerar_site.py)
+ferramentas/            scripts de apoio
 src/augeo_compras/
   config.py             lê os YAML em objetos tipados
   catalogo.py           lê as listas de preço da Securiton
@@ -247,10 +280,11 @@ src/augeo_compras/
   pedido.py             modelo do pedido e cálculo dos totais
   planilha.py           escreve o .xlsx (controle + proformas)
   estilos.py            fontes, bordas e alinhamentos
-  servico.py            junta tudo — usado pela CLI e pela web
+  servico.py            junta tudo — usado pela CLI, pela web e pelo navegador
+  navegador.py          ponte para quando o Python roda dentro do navegador
   cli.py                linha de comando
   web/                  API FastAPI + interface (página única, sem build)
-tests/                  45 testes
+tests/                  46 testes
 ```
 
 O fluxo é sempre o mesmo, e cada etapa é testável isoladamente:

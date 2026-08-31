@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# Fornecedores e suas marcas.
+#
+# A logo que aparece na proforma é escolhida pelo próprio pedido: os itens
+# sabem de qual pasta de listas vieram, a pasta sabe de qual fornecedor é
+# (veja `catalogo.yaml`) e o fornecedor traz a sua logo.
+#
+# Para trabalhar com outro fabricante, basta acrescentar um bloco aqui e
+# apontar a pasta das listas dele em `catalogo.yaml`.
+# ---------------------------------------------------------------------------
+
+fornecedores:
+  - id: securiton
+    nome: Securiton AG
+    logo: logo/SECURITON.jpg
+    # Largura da logo na planilha, em pixels (a altura segue a proporção).
+    largura_logo: 190
+
+# Usado quando o item não pertence a nenhuma pasta com fornecedor definido
+# (por exemplo, um serviço lançado à mão no pedido). Deixe em branco para
+# não mostrar logo nenhuma nesse caso.
+padrao: securiton
+
+# Quando o pedido mistura fornecedores:
+#   dominante  -> mostra a logo do fornecedor com mais itens
+#   nenhuma    -> não mostra logo de fornecedor
+pedido_misto: dominante

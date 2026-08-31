@@ -1,0 +1,25 @@
+{
+  "arquivos": [
+    "src/augeo_compras/__init__.py",
+    "src/augeo_compras/config.py",
+    "src/augeo_compras/catalogo.py",
+    "src/augeo_compras/precos.py",
+    "src/augeo_compras/pedido.py",
+    "src/augeo_compras/estilos.py",
+    "src/augeo_compras/planilha.py",
+    "src/augeo_compras/servico.py",
+    "src/augeo_compras/navegador.py",
+    "config/empresa.yaml",
+    "config/catalogo.yaml",
+    "config/fornecedores.yaml",
+    "config/layout.yaml",
+    "config/comercial.exemplo.yaml",
+    "logo/SECURITON.jpg",
+    "logo/augeo.png",
+    "logo/parana-em-rede-antiga.png"
+  ],
+  "wheels": [
+    "wheels/et_xmlfile-2.0.0-py3-none-any.whl",
+    "wheels/openpyxl-3.1.5-py2.py3-none-any.whl"
+  ]
+}

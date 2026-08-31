@@ -14,63 +14,11 @@ from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from ..pedido import Pedido, PedidoInvalido, PedidoResolvido
+from ..pedido import Pedido, PedidoInvalido
 from ..planilha import nome_sugerido
 from ..servico import Servico
 
 PASTA_ESTATICA = Path(__file__).parent / "static"
-
-
-def _resumo(resolvido: PedidoResolvido, servico: Servico) -> dict[str, Any]:
-    """Números e alertas mostrados no painel lateral da interface."""
-    from ..planilha import GeradorPlanilha
-
-    fornecedor = GeradorPlanilha(servico.config).fornecedor_do_pedido(resolvido)
-    return {
-        "itens": len(resolvido.linhas),
-        "fornecedor": (
-            {"id": fornecedor.id, "nome": fornecedor.nome, "tem_logo": bool(fornecedor.caminho_logo)}
-            if fornecedor
-            else None
-        ),
-        "fornecedores_misturados": resolvido.fornecedores_misturados,
-        "total_controle": resolvido.total_controle,
-        "frete_total": resolvido.frete_total,
-        "valor_faturado": resolvido.valor_faturado,
-        "valor_servico": resolvido.valor_servico,
-        "total_geral": resolvido.total_geral,
-        "avisos": resolvido.avisos,
-        "proformas": [
-            {
-                "indice": p.indice,
-                "numero": p.numero,
-                "itens": len(p.linhas),
-                "subtotal": p.subtotal,
-                "frete": p.frete,
-                "total": p.total,
-            }
-            for p in resolvido.proformas
-        ],
-        "linhas": [
-            {
-                "posicao": linha.posicao,
-                "part_number": linha.part_number,
-                "tipo": linha.tipo,
-                "descricao": linha.descricao,
-                "quantidade": linha.quantidade,
-                "preco_bruto": linha.preco_bruto,
-                "desconto_percentual": linha.desconto_percentual,
-                "preco_unitario": linha.preco_unitario,
-                "total": linha.total,
-                "quantidade_proforma": linha.quantidade_proforma,
-                "preco_proforma": linha.preco_proforma,
-                "total_proforma": linha.total_proforma,
-                "divergente": linha.divergente,
-                "proforma": linha.proforma,
-            }
-            for linha in resolvido.linhas
-        ],
-    }
 
 
 def criar_app(servico: Servico | None = None) -> FastAPI:
@@ -85,22 +33,7 @@ def criar_app(servico: Servico | None = None) -> FastAPI:
     # -- configuração ------------------------------------------------------ #
     @app.get("/api/config")
     def config() -> dict[str, Any]:
-        comercial = servico.config.comercial
-        empresa = servico.config.empresa
-        return {
-            "moeda": comercial.moeda,
-            "simbolo_moeda": comercial.simbolo_moeda,
-            "desconto_percentual": comercial.desconto_percentual,
-            "condicoes_padrao": comercial.condicoes_padrao.para_dict(),
-            "empresa": {"razao_social": empresa.razao_social, "cidade": empresa.cidade},
-            "sistemas": servico.catalogo.sistemas,
-            "total_itens": len(servico.catalogo),
-            "avisos_catalogo": servico.catalogo.avisos,
-            "fornecedores": [
-                {"id": f.id, "nome": f.nome, "tem_logo": bool(f.caminho_logo)}
-                for f in servico.config.fornecedores.itens.values()
-            ],
-        }
+        return servico.descricao_config()
 
     @app.post("/api/catalogo/recarregar")
     def recarregar() -> dict[str, Any]:
@@ -139,7 +72,7 @@ def criar_app(servico: Servico | None = None) -> FastAPI:
             resolvido = servico.resolver(Pedido.de_dict(dados))
         except PedidoInvalido as erro:
             raise HTTPException(status_code=400, detail=str(erro)) from erro
-        return _resumo(resolvido, servico)
+        return servico.resumo(resolvido)
 
     @app.post("/api/pedido/gerar")
     def gerar(dados: dict[str, Any] = Body(...)) -> FileResponse:

@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------
+# Dados da empresa que emite a proforma (timbre da planilha).
+# Tudo aqui é livre: altere textos, adicione ou remova linhas do endereço.
+# ---------------------------------------------------------------------------
+
+razao_social: PARANÁ EM REDE SISTEMA LTDA
+
+# Cada item vira uma linha do bloco de endereço, na ordem em que aparece.
+endereco:
+  - RUA ISAÍAS REGIS DE MIRANDA, 689
+  - CURITIBA - PR
+  - BRAZIL
+  - 81630-050
+
+telefone: "+55 41 3342-3737"
+fax: "+55 41 3342-9080"
+email: ""
+
+# Responsável que assina a proforma (aparece no bloco superior direito).
+responsavel: VALDIR MARODIN JÚNIOR
+
+# Logotipo de quem emite a proforma, exibido no canto superior esquerdo.
+# Caminho relativo à raiz do projeto; deixe em branco ("") para não usar logo.
+# A logo do fornecedor (canto direito) é escolhida sozinha, pelos itens do
+# pedido — veja `fornecedores.yaml`.
+logo: logo/augeo.png
+largura_logo: 110
+
+# Cidade usada na linha de data da proforma ("CURITIBA, 29 de agosto de 2026").
+cidade: CURITIBA

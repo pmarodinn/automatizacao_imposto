@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# Modelo das regras comerciais.
+#
+# O sistema procura primeiro `comercial.yaml`; não achando, usa este arquivo.
+# Para começar:  cp config/comercial.exemplo.yaml config/comercial.yaml
+# e preencha o desconto negociado e os dados bancários reais. O `comercial.yaml`
+# fica fora do Git de propósito — são informações comerciais.
+# ---------------------------------------------------------------------------
+
+# Desconto aplicado sobre o "Gross Price" das listas do fabricante.
+# 44.5 significa 44,5% => preço líquido = bruto * (1 - 0,445)
+desconto_percentual: 0.0
+
+# Exceções (opcional). Vencem sobre o desconto padrão, do mais específico
+# para o mais geral: part_number > tipo > sistema.
+descontos_por_sistema: {}
+  # SecuriFire: 40.0
+
+descontos_por_tipo: {}
+  # "ASD 535-3": 50.0
+
+descontos_por_part_number: {}
+  # "11-2000001-01-04": 35.0
+
+# Casas decimais do preço líquido (o preço bruto vem com 2 casas nas listas).
+casas_decimais: 2
+
+moeda: EUR
+simbolo_moeda: "€"
+
+# Numeração das posições na planilha: começa em `inicio` e sobe de `passo`.
+posicao_inicial: 10
+posicao_passo: 10
+
+# Coluna auxiliar oculta da aba de controle (no modelo original era "=J*0,4").
+# Serve para acompanhar internamente um valor derivado do preço líquido.
+coluna_auxiliar:
+  ativa: true
+  rotulo: Aux
+  fator: 0.4
+
+# Quantidade mínima de linhas de item reservadas na planilha, mesmo que o
+# pedido tenha menos itens (linhas em branco já formatadas para preenchimento
+# manual). Use 0 para gerar exatamente o número de itens do pedido.
+linhas_reservadas: 0
+
+# Textos padrão do bloco "Condições gerais" da proforma. Podem ser
+# sobrescritos em cada pedido.
+condicoes_padrao:
+  delivery_terms: ""
+  payment_terms: Pagamento em 60 dias
+  banco:
+    - conta bancária (EURO)
+    - "Banco, cidade, número da conta"
+    - "Swift: XXXXXXXX"
+  shipment_terms: EXW (Incoterms, 2020)
+  modal: "Aéreo"
+  agent_export: Not yet defined
