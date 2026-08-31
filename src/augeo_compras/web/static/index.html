@@ -500,8 +500,9 @@ td input.preco-edit{width:92px}
 
         <dt>Preço bruto e preço líquido</dt>
         <dd>As listas trazem o <i>Gross Price</i>. O sistema aplica o desconto negociado
-          (hoje <b id="glossario-desconto">44,5%</b>) e usa o resultado na planilha. Para
-          mudar o percentual, edite <code>config/comercial.yaml</code>.</dd>
+          (hoje <b id="glossario-desconto">44,5%</b>) e usa o resultado na planilha.
+          <span id="glossario-onde-desconto">Para mudar o percentual, edite
+          <code>config/comercial.yaml</code>.</span></dd>
 
         <dt>Service Value</dt>
         <dd>É a diferença entre <b>o que está sendo comprado</b> e <b>o que a proforma
@@ -1204,6 +1205,8 @@ async function prepararModoNavegador(){
   $("glossario-listas").innerHTML =
     "Clique em <b>Escolher arquivos…</b> e selecione as listas novas. Elas ficam " +
     "guardadas neste navegador, prontas no próximo acesso.";
+  $("glossario-onde-desconto").textContent =
+    "Ajuste o percentual no campo Desconto, ao lado do botão de escolher arquivos.";
   $("glossario-onde-roda-titulo").classList.remove("escondido");
   $("glossario-onde-roda").classList.remove("escondido");
   PASSOS_TOUR.find(p => p.alvo === "#btn-recarregar").texto =
