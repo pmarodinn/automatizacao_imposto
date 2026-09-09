@@ -1676,7 +1676,9 @@ async function iniciar(){
   try { jaUsou = localStorage.getItem(CHAVE_VISITA) === "1"; } catch(e){}
 
   // A ordem no primeiro uso é: identificação, apresentação e então o sistema.
-  if(!estado.identidade.completo){
+  // Quem nunca se identificou nesta máquina passa pela tela, mesmo que a
+  // configuração já traga uma empresa — ela é só um ponto de partida.
+  if(!guardada || !estado.identidade.completo){
     $("inicio").classList.add("escondido");
     abrirIdentificacao();
   } else if(jaUsou){
