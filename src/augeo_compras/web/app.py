@@ -35,6 +35,15 @@ def criar_app(servico: Servico | None = None) -> FastAPI:
     def config() -> dict[str, Any]:
         return servico.descricao_config()
 
+    # -- identidade -------------------------------------------------------- #
+    @app.get("/api/identidade")
+    def identidade() -> dict[str, Any]:
+        return servico.identidade()
+
+    @app.post("/api/identidade")
+    def definir_identidade(dados: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        return servico.aplicar_identidade(dados)
+
     @app.post("/api/catalogo/recarregar")
     def recarregar() -> dict[str, Any]:
         catalogo = servico.recarregar_catalogo()

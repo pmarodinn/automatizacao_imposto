@@ -108,12 +108,34 @@ code{font-family:var(--fonte-mono);font-size:.86em}
    Cabeçalho
    =================================================================== */
 header.topo{position:sticky;top:0;z-index:30;
-  background:color-mix(in srgb, var(--painel) 86%, transparent);
-  backdrop-filter:saturate(180%) blur(12px);
+  background:color-mix(in srgb, var(--painel) 88%, transparent);
+  backdrop-filter:saturate(180%) blur(14px);
   border-bottom:1px solid var(--borda-suave);
-  padding:11px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-header.topo h1{font-size:15px;font-weight:600;letter-spacing:-.015em;white-space:nowrap}
-header.topo h1 span{color:var(--acento)}
+  padding:9px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+
+/* quem compra → de quem compra: é a identidade do documento que vai sair */
+.identidade{display:flex;align-items:center;gap:10px;padding:5px 11px 5px 7px;
+  background:transparent;border:1px solid transparent;box-shadow:none;
+  border-radius:var(--raio-p);cursor:pointer;text-align:left;min-width:0}
+.identidade:hover{background:var(--painel-2);border-color:var(--borda);
+  box-shadow:var(--sombra-1);transform:none;color:inherit}
+.identidade:active{transform:none}
+.identidade img{height:30px;width:auto;max-width:92px;object-fit:contain;display:block;flex:none}
+.identidade img:not([src]),.identidade img[src=""]{display:none}
+.identidade .quem{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.identidade .quem b{font-size:12.5px;font-weight:600;color:var(--texto);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+.identidade .quem small{font-size:10.5px;color:var(--texto-fraco);
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:210px}
+.identidade .rumo{flex:none;width:16px;height:1px;background:var(--borda);position:relative;
+  margin:0 3px}
+.identidade .rumo::after{content:"";position:absolute;right:0;top:-2.5px;
+  width:5px;height:5px;border-top:1.4px solid var(--texto-fraco);
+  border-right:1.4px solid var(--texto-fraco);transform:rotate(45deg);opacity:.7}
+.separador-topo{width:1px;align-self:stretch;background:var(--borda-suave);margin:2px 2px}
+@media (max-width:900px){.separador-topo{display:none}}
+
 .stats{display:flex;gap:7px;flex-wrap:wrap}
 .pilula{display:inline-flex;align-items:center;gap:5px;
   background:var(--painel-2);border:1px solid var(--borda-suave);
@@ -368,7 +390,7 @@ td input.preco-edit{width:92px}
 #inicio{position:fixed;inset:0;z-index:200;background:var(--fundo);overflow-y:auto;
   padding:44px 22px 70px;animation:surgir var(--medio) var(--ease)}
 #inicio .caixa{max-width:920px;margin:0 auto}
-#inicio .selo-marca{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+.selo-marca{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
   color:var(--acento);margin-bottom:12px;display:block}
 #inicio h2{font-size:30px;letter-spacing:-.03em;margin-bottom:10px}
 #inicio .sub{color:var(--texto-medio);font-size:15.5px;line-height:1.6;
@@ -420,6 +442,54 @@ td input.preco-edit{width:92px}
 #tour-balao button{padding:6px 12px;font-size:13px}
 
 /* ===================================================================
+   Tela de identificação
+   =================================================================== */
+#identificacao{position:fixed;inset:0;z-index:220;background:var(--fundo);overflow-y:auto;
+  padding:40px 22px 60px;animation:surgir var(--medio) var(--ease)}
+#identificacao .caixa{max-width:980px;margin:0 auto}
+#identificacao h2{font-size:26px;letter-spacing:-.025em;margin-bottom:8px}
+#identificacao .sub{color:var(--texto-medio);font-size:14.5px;line-height:1.6;
+  max-width:70ch;margin-bottom:28px}
+.dupla{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;align-items:start;
+  margin-bottom:24px}
+@media (max-width:860px){.dupla{grid-template-columns:1fr}}
+.cartao-id{background:var(--painel);border:1px solid var(--borda-suave);
+  border-radius:var(--raio);box-shadow:var(--sombra-1);overflow:hidden;
+  animation:subir var(--lento) var(--ease) both}
+.cartao-id:nth-child(2){animation-delay:70ms}
+.cartao-id > header{display:flex;align-items:center;gap:9px;padding:13px 18px;
+  border-bottom:1px solid var(--borda-suave)}
+.cartao-id > header h3{font-size:13.5px}
+.cartao-id > header .papel{margin-left:auto;font-size:10.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--texto-fraco)}
+.cartao-id .corpo{display:grid;gap:12px}
+
+.escolha-emitente{display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px 0}
+.chip-emitente{display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  padding:8px 13px;border:1px solid var(--borda);border-radius:var(--raio-p);
+  background:var(--painel-2);cursor:pointer;text-align:left;box-shadow:none}
+.chip-emitente:hover{border-color:var(--acento);transform:none;box-shadow:var(--sombra-1)}
+.chip-emitente.ativo{border-color:var(--acento);background:var(--acento-tenue);
+  box-shadow:0 0 0 3px var(--acento-tenue)}
+.chip-emitente b{font-size:12.5px;font-weight:600;color:var(--texto)}
+.chip-emitente small{font-size:10.5px;color:var(--texto-fraco);font-variant-numeric:tabular-nums}
+
+.area-logo{display:flex;align-items:center;gap:14px;padding:13px;
+  border:1px dashed var(--borda);border-radius:var(--raio-p);background:var(--painel-2)}
+.area-logo .previa{width:96px;height:56px;flex:none;display:grid;place-items:center;
+  background:var(--painel);border:1px solid var(--borda-suave);border-radius:var(--raio-pp);
+  overflow:hidden}
+.area-logo .previa img{max-width:100%;max-height:100%;object-fit:contain}
+.area-logo .previa span{font-size:10.5px;color:var(--texto-fraco)}
+.area-logo .texto{flex:1;min-width:0}
+.area-logo .texto strong{display:block;font-size:12.5px;font-weight:600}
+
+.rodape-id{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  animation:subir var(--lento) var(--ease) both;animation-delay:150ms}
+.rodape-id button{padding:10px 18px}
+.pendencia{font-size:12.5px;color:var(--aviso)}
+
+/* ===================================================================
    Carregamento do sistema no navegador
    =================================================================== */
 #carregando{position:fixed;inset:0;z-index:400;background:var(--fundo);
@@ -466,6 +536,92 @@ td input.preco-edit{width:92px}
   </div>
 </div>
 
+<!-- =================================================== identificação -->
+<div id="identificacao" class="escondido">
+  <div class="caixa">
+    <span class="selo-marca">Identificação</span>
+    <h2>Quem está comprando, e de quem</h2>
+    <p class="sub">É o que aparece no timbre da proforma. A mesma operação pode faturar
+      por mais de um CNPJ — escolha abaixo qual está em uso. As logos podem ser trocadas
+      a qualquer momento e valem para as próximas planilhas geradas.</p>
+
+    <div class="dupla">
+      <!-- ---------------- emitente ---------------- -->
+      <section class="cartao-id">
+        <header>
+          <h3>Quem está comprando</h3>
+          <span class="papel">Emitente</span>
+        </header>
+
+        <div class="escolha-emitente" id="escolha-emitente"></div>
+
+        <div class="corpo">
+          <div class="campos" style="grid-template-columns:1.4fr 1fr">
+            <div><label for="id-razao">Razão social</label>
+              <input id="id-razao" placeholder="Ex.: AUGEO ENGENHARIA LTDA"></div>
+            <div><label for="id-cnpj">CNPJ</label>
+              <input id="id-cnpj" placeholder="00.000.000/0001-00" inputmode="numeric"></div>
+          </div>
+          <div>
+            <label for="id-endereco">Endereço (uma linha cada)</label>
+            <textarea id="id-endereco" style="min-height:104px" placeholder="RUA E NÚMERO&#10;CIDADE - UF&#10;BRAZIL&#10;CEP"></textarea>
+          </div>
+          <div class="campos">
+            <div><label for="id-telefone">Telefone</label><input id="id-telefone"></div>
+            <div><label for="id-fax">Fax</label><input id="id-fax"></div>
+            <div><label for="id-cidade">Cidade (na data)</label><input id="id-cidade"></div>
+          </div>
+          <div><label for="id-responsavel">Responsável</label><input id="id-responsavel"></div>
+
+          <div class="area-logo">
+            <div class="previa" id="previa-emitente"><span>sem logo</span></div>
+            <div class="texto">
+              <strong>Logotipo do emitente</strong>
+              <span class="dica">Aparece no canto superior esquerdo da proforma.</span>
+            </div>
+            <button onclick="$('arquivo-logo-emitente').click()">Trocar logo</button>
+            <input id="arquivo-logo-emitente" type="file" accept="image/*" class="escondido"
+                   onchange="escolherLogo('emitente', this.files[0])">
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- fornecedor ---------------- -->
+      <section class="cartao-id">
+        <header>
+          <h3>De quem está comprando</h3>
+          <span class="papel">Fornecedor</span>
+        </header>
+        <div class="corpo">
+          <div><label for="id-fornecedor">Nome do fornecedor</label>
+            <input id="id-fornecedor" placeholder="Ex.: Securiton AG"></div>
+
+          <div class="area-logo">
+            <div class="previa" id="previa-fornecedor"><span>sem logo</span></div>
+            <div class="texto">
+              <strong>Logotipo do fornecedor</strong>
+              <span class="dica">Vai no canto superior direito da proforma.</span>
+            </div>
+            <button onclick="$('arquivo-logo-fornecedor').click()">Trocar logo</button>
+            <input id="arquivo-logo-fornecedor" type="file" accept="image/*" class="escondido"
+                   onchange="escolherLogo('fornecedor', this.files[0])">
+          </div>
+
+          <p class="dica">Comprando de mais de um fabricante, a logo que sai na proforma é a
+            do fornecedor dos itens do pedido — este nome é o padrão para itens sem
+            fornecedor definido.</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="rodape-id">
+      <button class="principal" onclick="salvarIdentificacao()">Continuar</button>
+      <button onclick="fecharIdentificacao()" id="btn-id-cancelar">Cancelar</button>
+      <span class="pendencia escondido" id="id-pendencia"></span>
+    </div>
+  </div>
+</div>
+
 <!-- =================================================== página inicial -->
 <div id="inicio">
   <div class="caixa">
@@ -509,9 +665,21 @@ td input.preco-edit{width:92px}
           declara</b>. Se você comprar 5 peças e declarar 6, a diferença aparece aqui
           automaticamente — o total geral continua sendo o custo real da compra.</dd>
 
+        <dt>Quem está comprando, e de quem</dt>
+        <dd>No alto da tela ficam as duas partes do negócio: à esquerda o <b>emitente</b>
+          (razão social, CNPJ e logo de quem faz o pedido) e à direita o <b>fornecedor</b>.
+          Clique ali para trocar de CNPJ — a mesma operação pode faturar por mais de uma
+          pessoa jurídica — ou para enviar outras logos. É exatamente o que sai no timbre
+          da proforma.</dd>
+
         <dt>A logo do fornecedor</dt>
         <dd>Sai sozinha, escolhida pelos itens do pedido: comprando produtos Securiton, a
           proforma sai com a logo da Securiton. A sua logo fica sempre no canto esquerdo.</dd>
+
+        <dt>Rascunhos</dt>
+        <dd><b>Salvar rascunho</b> guarda o pedido em andamento — itens, quantidades e
+          dados da proforma — para você continuar depois pelo seletor <i>Abrir rascunho
+          salvo</i>. Não gera planilha: isso é o botão <b>Gerar planilha</b>.</dd>
 
         <dt>Listas novas a cada trimestre</dt>
         <dd id="glossario-listas">Copie os arquivos novos para a pasta das listas e clique em
@@ -534,12 +702,29 @@ td input.preco-edit{width:92px}
 
 <!-- =================================================== aplicação -->
 <header class="topo">
-  <h1>Automação de compras <span>Securiton</span></h1>
+  <button class="identidade" id="btn-identidade" onclick="abrirIdentificacao()"
+          title="Trocar quem está comprando, o fornecedor ou as logos">
+    <img id="logo-emitente" alt="">
+    <span class="quem">
+      <b id="nome-emitente">—</b>
+      <small id="cnpj-emitente">defina quem está comprando</small>
+    </span>
+    <span class="rumo"></span>
+    <img id="logo-fornecedor" alt="">
+    <span class="quem">
+      <b id="nome-fornecedor">—</b>
+      <small>fornecedor</small>
+    </span>
+  </button>
+
+  <div class="separador-topo"></div>
+
   <div class="stats" id="stats">
     <span class="pilula"><b id="stat-itens">—</b> itens</span>
     <span class="pilula"><b id="stat-sistemas">—</b> sistemas</span>
     <span class="pilula">desconto <b id="stat-desconto">—</b></span>
   </div>
+
   <div class="acoes-topo">
     <button class="fantasma" onclick="mostrarInicio()">Como usar</button>
     <button class="fantasma" id="btn-recarregar" onclick="recarregarCatalogo()"
@@ -586,7 +771,7 @@ td input.preco-edit{width:92px}
       <h2>Pedido</h2>
       <div class="acoes-topo">
         <select id="pedidos-salvos" onchange="abrirPedido(this.value)" style="width:auto">
-          <option value="">Abrir pedido salvo…</option>
+          <option value="">Abrir rascunho salvo…</option>
         </select>
         <button class="fantasma" onclick="limparPedido()">Novo</button>
       </div>
@@ -645,8 +830,8 @@ td input.preco-edit{width:92px}
 
     <div class="acoes">
       <button class="principal" id="btn-gerar" onclick="gerarPlanilha()">Gerar planilha</button>
-      <button onclick="salvarPedido()">Salvar pedido</button>
-      <button class="fantasma" onclick="baixarPedidoJson()">Exportar .json</button>
+      <button onclick="salvarPedido()" title="Guarda o pedido em andamento para continuar depois">Salvar rascunho</button>
+      <button class="fantasma" onclick="baixarPedidoJson()">Exportar rascunho</button>
       <span class="selo-fornecedor escondido" id="selo-fornecedor"></span>
     </div>
   </section>
@@ -747,6 +932,12 @@ const Servidor = {
     const r = await api("api/catalogo/exportar");
     return {nome: "catalogo_com_desconto.xlsx", blob: await r.blob()};
   },
+  async identidade(){ return (await api("api/identidade")).json(); },
+  async definirIdentidade(dados){
+    return (await api("api/identidade", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(dados)})).json();
+  },
   async listarPedidos(){ return (await api("api/pedidos")).json(); },
   async abrirPedido(nome){ return (await api("api/pedidos/" + encodeURIComponent(nome))).json(); },
   async salvarPedido(pedido){
@@ -810,6 +1001,10 @@ const Navegador = {
     return {nome: r.nome, blob: deBase64(r.conteudo)};
   },
   definirDesconto(valor){ return this._json(this.ponte.definir_desconto(Number(valor) || 0)); },
+  async identidade(){ return this._json(this.ponte.identidade()); },
+  async definirIdentidade(dados){
+    return this._json(this.ponte.definir_identidade(JSON.stringify(dados)));
+  },
 
   /** Grava as listas escolhidas no disco virtual e manda o Python lê-las. */
   async carregarListas(arquivos){
@@ -984,6 +1179,170 @@ addEventListener("scroll", (e) => {
 addEventListener("resize", fecharSelects);
 
 // --------------------------------------------------------------------------
+// Identificação: quem compra, de quem, e com quais logos
+//
+// É o que vai no timbre da proforma. Fica guardada nesta máquina, então só
+// precisa ser preenchida uma vez — e trocada quando mudar o CNPJ que fatura.
+// --------------------------------------------------------------------------
+const CHAVE_IDENTIDADE = "augeo-compras:identidade";
+const idEmEdicao = {emitente: null, logos: {}};
+
+function abrirIdentificacao(){
+  encerrarTour();
+  $("identificacao").classList.remove("escondido");
+  $("btn-id-cancelar").classList.toggle("escondido", !estado.identidade?.completo);
+  desenharIdentificacao();
+}
+
+function fecharIdentificacao(){ $("identificacao").classList.add("escondido"); }
+
+function desenharIdentificacao(){
+  const identidade = estado.identidade || {};
+  const emitente = idEmEdicao.emitente || identidade.emitente || {};
+
+  $("escolha-emitente").innerHTML = (identidade.emitentes || []).map(e => `
+    <button class="chip-emitente ${e.identificador === emitente.identificador ? "ativo" : ""}"
+            onclick="trocarEmitente('${esc(e.identificador)}')">
+      <b>${esc(e.razao_social || e.identificador)}</b>
+      <small>${esc(e.cnpj || "sem CNPJ")}</small>
+    </button>`).join("");
+
+  $("id-razao").value = emitente.razao_social || "";
+  $("id-cnpj").value = emitente.cnpj || "";
+  $("id-endereco").value = (emitente.endereco || []).join("\n");
+  $("id-telefone").value = emitente.telefone || "";
+  $("id-fax").value = emitente.fax || "";
+  $("id-cidade").value = emitente.cidade || "";
+  $("id-responsavel").value = emitente.responsavel || "";
+  $("id-fornecedor").value = identidade.fornecedor?.nome || "";
+
+  desenharPrevia("emitente", idEmEdicao.logos.emitente?.dados || identidade.logo_emitente);
+  desenharPrevia("fornecedor", idEmEdicao.logos.fornecedor?.dados || identidade.logo_fornecedor);
+}
+
+function desenharPrevia(qual, fonte){
+  const alvo = $("previa-" + qual);
+  alvo.innerHTML = fonte ? `<img src="${fonte}" alt="">` : "<span>sem logo</span>";
+}
+
+function trocarEmitente(identificador){
+  // Guarda o que já foi digitado antes de saltar para outro CNPJ.
+  const atual = coletarEmitente();
+  const identidade = estado.identidade || {};
+  const lista = identidade.emitentes || [];
+  const alvo = lista.find(e => e.identificador === identificador);
+  if(atual.identificador && atual.identificador !== identificador){
+    const guardado = lista.find(e => e.identificador === atual.identificador);
+    if(guardado){ guardado.razao_social = atual.razao_social; guardado.cnpj = atual.cnpj; }
+  }
+  idEmEdicao.emitente = {
+    ...(identidade.emitente?.identificador === identificador ? identidade.emitente : {}),
+    ...(alvo || {}), identificador,
+  };
+  idEmEdicao.logos.emitente = null;
+  desenharIdentificacao();
+}
+
+function coletarEmitente(){
+  const base = idEmEdicao.emitente || estado.identidade?.emitente || {};
+  return {
+    identificador: base.identificador || "emitente",
+    razao_social: $("id-razao").value.trim(),
+    cnpj: $("id-cnpj").value.trim(),
+    endereco: $("id-endereco").value.split("\n").map(s => s.trim()).filter(Boolean),
+    telefone: $("id-telefone").value.trim(),
+    fax: $("id-fax").value.trim(),
+    cidade: $("id-cidade").value.trim(),
+    responsavel: $("id-responsavel").value.trim(),
+  };
+}
+
+async function escolherLogo(qual, arquivo){
+  if(!arquivo) return;
+  const dados = await new Promise((ok, falha) => {
+    const leitor = new FileReader();
+    leitor.onload = () => ok(leitor.result);
+    leitor.onerror = () => falha(leitor.error);
+    leitor.readAsDataURL(arquivo);
+  });
+  idEmEdicao.logos[qual] = {dados, nome: arquivo.name, base64: dados.split(",")[1]};
+  desenharPrevia(qual, dados);
+}
+
+function montarIdentidade(){
+  const emitente = coletarEmitente();
+  if(idEmEdicao.logos.emitente){
+    emitente.logo_conteudo = idEmEdicao.logos.emitente.base64;
+    emitente.logo_nome = idEmEdicao.logos.emitente.nome;
+  }
+  const fornecedor = {
+    id: estado.identidade?.fornecedor?.id || "fornecedor",
+    nome: $("id-fornecedor").value.trim(),
+  };
+  if(idEmEdicao.logos.fornecedor){
+    fornecedor.logo_conteudo = idEmEdicao.logos.fornecedor.base64;
+    fornecedor.logo_nome = idEmEdicao.logos.fornecedor.nome;
+  }
+  return {emitente, fornecedor};
+}
+
+async function salvarIdentificacao(){
+  const identidade = montarIdentidade();
+  const faltando = [];
+  if(!identidade.emitente.razao_social) faltando.push("a razão social");
+  if(!identidade.emitente.cnpj) faltando.push("o CNPJ");
+  if(!identidade.fornecedor.nome) faltando.push("o nome do fornecedor");
+  const pendencia = $("id-pendencia");
+  if(faltando.length){
+    pendencia.textContent = "Preencha " + faltando.join(", ") + ".";
+    pendencia.classList.remove("escondido");
+    return;
+  }
+  pendencia.classList.add("escondido");
+
+  try {
+    estado.identidade = await Dados.definirIdentidade(identidade);
+    guardarIdentidade(identidade);
+    idEmEdicao.emitente = null; idEmEdicao.logos = {};
+    desenharTopo();
+    fecharIdentificacao();
+    seguirDaIdentificacao();
+    atualizarResumo();
+    aviso("Identificação salva");
+  } catch(e){ aviso("Erro ao salvar: " + e.message, true); }
+}
+
+function guardarIdentidade(identidade){
+  try { localStorage.setItem(CHAVE_IDENTIDADE, JSON.stringify(identidade)); }
+  catch(e){ /* modo privativo: vale só nesta sessão */ }
+}
+
+function identidadeGuardada(){
+  try { return JSON.parse(localStorage.getItem(CHAVE_IDENTIDADE) || "null"); }
+  catch(e){ return null; }
+}
+
+function desenharTopo(){
+  const identidade = estado.identidade || {};
+  const emitente = identidade.emitente || {};
+  $("nome-emitente").textContent = emitente.razao_social || "Definir emitente";
+  $("cnpj-emitente").textContent = emitente.cnpj
+    ? "CNPJ " + emitente.cnpj : "defina quem está comprando";
+  $("nome-fornecedor").textContent = identidade.fornecedor?.nome || "Definir fornecedor";
+  // O nome pode ser cortado na barra; o título completo fica na dica do botão.
+  $("btn-identidade").title =
+    `${emitente.razao_social || "emitente"} compra de ` +
+    `${identidade.fornecedor?.nome || "fornecedor"} — clique para trocar`;
+
+  for(const [qual, fonte] of [["emitente", identidade.logo_emitente],
+                              ["fornecedor", identidade.logo_fornecedor]]){
+    const img = $("logo-" + qual);
+    if(fonte){ img.src = fonte; img.style.display = ""; }
+    else { img.removeAttribute("src"); img.style.display = "none"; }
+  }
+}
+
+// --------------------------------------------------------------------------
 // Página inicial
 // --------------------------------------------------------------------------
 function mostrarInicio(){ $("inicio").classList.remove("escondido"); encerrarTour(); }
@@ -994,10 +1353,19 @@ function entrar(comTour){
   if(comTour) iniciarTour();
 }
 
+/** Depois de identificar-se pela primeira vez, segue para a apresentação. */
+function seguirDaIdentificacao(){
+  let jaUsou = false;
+  try { jaUsou = localStorage.getItem(CHAVE_VISITA) === "1"; } catch(e){}
+  if(!jaUsou) $("inicio").classList.remove("escondido");
+}
+
 // --------------------------------------------------------------------------
 // Tour guiado
 // --------------------------------------------------------------------------
 const PASSOS_TOUR = [
+  {alvo:"#btn-identidade", titulo:"Quem compra, e de quem",
+   texto:"À esquerda o emitente — razão social, CNPJ e logo de quem faz o pedido; à direita o fornecedor. Clique aqui para trocar de CNPJ ou enviar outras logos. É o que sai no timbre da proforma."},
   {alvo:"#stats", titulo:"O catálogo carregado",
    texto:"Quantos itens foram lidos das listas de preço, quantos sistemas e o desconto que está sendo aplicado sobre o preço de lista."},
   {alvo:"#busca", titulo:"Buscar itens",
@@ -1146,16 +1514,32 @@ async function iniciar(){
 
   if(c.avisos_catalogo?.length) aviso(c.avisos_catalogo.length + " aviso(s) na leitura das listas");
 
+  // Identificação: reaplica o que já foi preenchido nesta máquina.
+  const guardada = identidadeGuardada();
+  if(guardada){
+    try { estado.identidade = await Dados.definirIdentidade(guardada); }
+    catch(e){ estado.identidade = await Dados.identidade(); }
+  } else {
+    estado.identidade = await Dados.identidade();
+  }
+  desenharTopo();
+
   desenharProformas();
   desenharItens();
   buscar();
   listarPedidosSalvos();
   fluidificarSelects();
 
-  // Quem já usou entra direto; no primeiro uso, a página inicial fica aberta.
   let jaUsou = false;
   try { jaUsou = localStorage.getItem(CHAVE_VISITA) === "1"; } catch(e){}
-  if(jaUsou) $("inicio").classList.add("escondido");
+
+  // A ordem no primeiro uso é: identificação, apresentação e então o sistema.
+  if(!estado.identidade.completo){
+    $("inicio").classList.add("escondido");
+    abrirIdentificacao();
+  } else if(jaUsou){
+    $("inicio").classList.add("escondido");
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -1212,7 +1596,7 @@ async function prepararModoNavegador(){
   PASSOS_TOUR.find(p => p.alvo === "#btn-recarregar").texto =
     "Quando chegarem as listas do próximo trimestre, clique aqui e escolha os arquivos " +
     "novos. Eles ficam guardados neste navegador.";
-  PASSOS_TOUR.splice(1, 0, {
+  PASSOS_TOUR.splice(2, 0, {
     alvo: "#painel-listas",
     titulo: "Suas listas de preço",
     texto: "Escolha aqui os arquivos que o fabricante enviou e informe o desconto " +
@@ -1561,10 +1945,10 @@ async function gerarPlanilha(){
 }
 
 async function salvarPedido(){
-  if(!$("referencia").value.trim()) return aviso("Dê uma referência ao pedido antes de salvar.", true);
+  if(!$("referencia").value.trim()) return aviso("Dê uma referência ao pedido antes de salvar o rascunho.", true);
   try {
     const dados = await Dados.salvarPedido(montarPedido());
-    aviso("Pedido salvo como " + dados.arquivo);
+    aviso("Rascunho salvo como " + dados.arquivo);
     listarPedidosSalvos();
   } catch(e){ aviso("Erro ao salvar: "+e.message, true); }
 }
@@ -1577,7 +1961,7 @@ function baixarPedidoJson(){
 async function listarPedidosSalvos(){
   try {
     const dados = await Dados.listarPedidos();
-    $("pedidos-salvos").innerHTML = '<option value="">Abrir pedido salvo…</option>' +
+    $("pedidos-salvos").innerHTML = '<option value="">Abrir rascunho salvo…</option>' +
       dados.pedidos.map(p => `<option value="${esc(p.nome)}">${esc(p.nome)}</option>`).join("");
     fluidificarSelects();
   } catch(e){ /* lista vazia é normal */ }
@@ -1614,7 +1998,7 @@ async function abrirPedido(nome){
         descricao:l.descricao, tipo:l.tipo, sistema:"", preco_liquido:l.preco_unitario, preco_bruto:l.preco_bruto};
     });
     desenharItens();
-    aviso("Pedido carregado: " + nome);
+    aviso("Rascunho carregado: " + nome);
   } catch(e){ aviso("Erro ao abrir: "+e.message, true); }
 }
 

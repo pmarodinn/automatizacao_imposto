@@ -57,6 +57,16 @@ def configuracao() -> str:
     return _resposta(**_ativo().descricao_config())
 
 
+def identidade() -> str:
+    """Quem está comprando, de quem, e as logos em uso."""
+    return _resposta(**_ativo().identidade())
+
+
+def definir_identidade(dados_json: str) -> str:
+    """Aplica o que foi preenchido na tela de identificação."""
+    return _resposta(**_ativo().aplicar_identidade(json.loads(dados_json)))
+
+
 def definir_desconto(percentual: float) -> str:
     """O desconto negociado não vai para o repositório; é informado na tela."""
     servico = _ativo()

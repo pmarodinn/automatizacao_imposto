@@ -43,7 +43,16 @@ def resolver(caminho: str | Path) -> Path:
 
 @dataclass
 class Empresa:
+    """Um emitente da proforma.
+
+    A mesma operação pode faturar por mais de uma pessoa jurídica — o
+    `identificador` distingue cada CNPJ, e a tela de identificação escolhe qual
+    está em uso.
+    """
+
+    identificador: str = ""
     razao_social: str = ""
+    cnpj: str = ""
     endereco: list[str] = field(default_factory=list)
     telefone: str = ""
     fax: str = ""
@@ -62,7 +71,10 @@ class Empresa:
 
     def linhas_timbre(self) -> list[str]:
         """Bloco de texto do topo da proforma, na ordem de exibição."""
-        linhas = [self.razao_social, *self.endereco]
+        linhas = [self.razao_social]
+        if self.cnpj:
+            linhas.append(f"CNPJ: {self.cnpj}")
+        linhas.extend(self.endereco)
         if self.telefone:
             linhas.append(f"Phone: {self.telefone}")
         if self.fax:
@@ -70,6 +82,36 @@ class Empresa:
         if self.email:
             linhas.append(self.email)
         return [linha for linha in linhas if linha]
+
+    def para_dict(self) -> dict[str, Any]:
+        return {
+            "identificador": self.identificador,
+            "razao_social": self.razao_social,
+            "cnpj": self.cnpj,
+            "endereco": list(self.endereco),
+            "telefone": self.telefone,
+            "fax": self.fax,
+            "email": self.email,
+            "responsavel": self.responsavel,
+            "logo": self.logo,
+            "cidade": self.cidade,
+        }
+
+    @classmethod
+    def de_dict(cls, dados: dict[str, Any]) -> "Empresa":
+        return cls(
+            identificador=str(dados.get("identificador") or dados.get("id") or ""),
+            razao_social=dados.get("razao_social", "") or "",
+            cnpj=dados.get("cnpj", "") or "",
+            endereco=[linha for linha in (dados.get("endereco") or []) if linha],
+            telefone=dados.get("telefone", "") or "",
+            fax=dados.get("fax", "") or "",
+            email=dados.get("email", "") or "",
+            responsavel=dados.get("responsavel", "") or "",
+            logo=dados.get("logo", "") or "",
+            largura_logo=int(dados.get("largura_logo", 110)),
+            cidade=dados.get("cidade", "") or "",
+        )
 
 
 @dataclass
@@ -224,16 +266,25 @@ class Layout:
 
 @dataclass
 class Config:
-    empresa: Empresa
+    empresa: Empresa                      # o emitente em uso
     comercial: Comercial
     catalogo: OrigemCatalogo
     layout: Layout
     fornecedores: Fornecedores = field(default_factory=Fornecedores)
+    emitentes: list[Empresa] = field(default_factory=list)
     raiz: Path = RAIZ
+
+    def emitente(self, identificador: str) -> Empresa | None:
+        return next((e for e in self.emitentes if e.identificador == identificador), None)
 
     @property
     def pasta_saida(self) -> Path:
         return self.raiz / "data" / "saida"
+
+    @property
+    def pasta_logos(self) -> Path:
+        """Onde ficam as logos enviadas pela tela de identificação."""
+        return self.raiz / "data" / "logos"
 
     @property
     def pasta_pedidos(self) -> Path:
@@ -245,16 +296,15 @@ def carregar(pasta: Path | str | None = None) -> Config:
     pasta = Path(pasta) if pasta else PASTA_CONFIG
 
     dados_empresa = _ler_yaml(pasta / "empresa.yaml")
-    empresa = Empresa(
-        razao_social=dados_empresa.get("razao_social", ""),
-        endereco=list(dados_empresa.get("endereco") or []),
-        telefone=dados_empresa.get("telefone", "") or "",
-        fax=dados_empresa.get("fax", "") or "",
-        email=dados_empresa.get("email", "") or "",
-        responsavel=dados_empresa.get("responsavel", "") or "",
-        logo=dados_empresa.get("logo", "") or "",
-        largura_logo=int(dados_empresa.get("largura_logo", 110)),
-        cidade=dados_empresa.get("cidade", "") or "",
+    if dados_empresa.get("emitentes"):
+        emitentes = [Empresa.de_dict(e) for e in dados_empresa["emitentes"]]
+    else:
+        # Formato antigo, com um emitente só solto na raiz do arquivo.
+        emitentes = [Empresa.de_dict({**dados_empresa, "identificador": "padrao"})]
+    escolhido = dados_empresa.get("padrao") or (emitentes[0].identificador if emitentes else "")
+    empresa = next(
+        (e for e in emitentes if e.identificador == escolhido),
+        emitentes[0] if emitentes else Empresa(),
     )
 
     dc = _ler_yaml(pasta / "comercial.yaml")
@@ -354,4 +404,5 @@ def carregar(pasta: Path | str | None = None) -> Config:
         catalogo=catalogo,
         layout=layout,
         fornecedores=fornecedores,
+        emitentes=emitentes,
     )

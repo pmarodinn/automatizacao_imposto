@@ -18,6 +18,22 @@ nenhum — as listas e os pedidos ficam guardados na sua própria máquina.
 
 ---
 
+## Identificação: quem compra, e de quem
+
+No topo da tela ficam as duas partes do negócio — à esquerda o **emitente**
+(razão social, CNPJ e logo de quem faz o pedido), à direita o **fornecedor**.
+Clicar ali abre a tela de identificação, que é também a primeira coisa que
+aparece no primeiro uso.
+
+Uma mesma operação pode faturar por **mais de um CNPJ** (aqui, Paraná em Rede e
+Augeo Engenharia): cada um é um bloco em `config/empresa.yaml`, e a tela
+alterna entre eles com um clique. O que estiver escolhido é o que sai no timbre
+da proforma, CNPJ incluído.
+
+As **duas logos podem ser enviadas pela tela** — a do emitente vai no canto
+superior esquerdo da proforma, a do fornecedor no direito — e a mudança aparece
+na hora, tanto na barra de topo quanto nas próximas planilhas.
+
 ## Os dois modos de uso
 
 A interface é uma só; o que muda é onde o Python roda.
@@ -143,7 +159,7 @@ não é preciso mexer em código.
 
 | Arquivo | Para quê |
 |---|---|
-| `empresa.yaml` | razão social, endereço, telefone, responsável, logo, cidade |
+| `empresa.yaml` | os emitentes: razão social, CNPJ, endereço, responsável e logo de cada um |
 | `comercial.yaml` | **desconto**, moeda, numeração das posições, condições padrão (fora do Git) |
 | `catalogo.yaml` | onde ficam as listas de preço e como lê-las |
 | `fornecedores.yaml` | nome e logo de cada fabricante |
@@ -284,7 +300,7 @@ src/augeo_compras/
   navegador.py          ponte para quando o Python roda dentro do navegador
   cli.py                linha de comando
   web/                  API FastAPI + interface (página única, sem build)
-tests/                  46 testes
+tests/                  55 testes
 ```
 
 O fluxo é sempre o mesmo, e cada etapa é testável isoladamente:

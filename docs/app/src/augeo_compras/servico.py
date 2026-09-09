@@ -16,7 +16,7 @@ from . import catalogo as mod_catalogo
 from . import pedido as mod_pedido
 from . import planilha as mod_planilha
 from .catalogo import Catalogo, Item
-from .config import Config, carregar as carregar_config
+from .config import Config, Empresa, Fornecedor, carregar as carregar_config
 from .pedido import Pedido, PedidoResolvido
 from .precos import PrecoCalculado, TabelaDePrecos
 
@@ -172,6 +172,87 @@ class Servico:
                 }
                 for linha in resolvido.linhas
             ],
+        }
+
+    # -- identidade (quem compra e de quem) -------------------------------- #
+    def _guardar_logo(self, conteudo_base64: str, nome: str) -> str:
+        """Grava uma logo enviada pela tela e devolve o caminho absoluto.
+
+        Absoluto de propósito: caminho relativo seria resolvido a partir da raiz
+        do projeto, e a pasta de logos acompanha a `raiz` desta configuração.
+        """
+        import base64
+
+        pasta = self.config.pasta_logos
+        pasta.mkdir(parents=True, exist_ok=True)
+        seguro = "".join(c if c.isalnum() or c in "-_." else "-" for c in nome) or "logo.png"
+        destino = pasta / seguro
+        destino.write_bytes(base64.b64decode(conteudo_base64))
+        return str(destino)
+
+    def _logo_em_dados(self, caminho: Path | None) -> str | None:
+        """Devolve a logo como data URI, para a interface exibir."""
+        import base64
+        import mimetypes
+
+        if not caminho or not caminho.exists():
+            return None
+        tipo = mimetypes.guess_type(caminho.name)[0] or "image/png"
+        return f"data:{tipo};base64,{base64.b64encode(caminho.read_bytes()).decode()}"
+
+    def aplicar_identidade(self, dados: dict[str, Any]) -> dict[str, Any]:
+        """Troca o emitente em uso e o fornecedor, incluindo as logos enviadas."""
+        entrada = dados.get("emitente") or {}
+        if entrada:
+            atual = self.config.emitente(entrada.get("identificador", "")) or self.config.empresa
+            campos = {**atual.para_dict(), **{k: v for k, v in entrada.items() if k in atual.para_dict()}}
+            if entrada.get("logo_conteudo"):
+                campos["logo"] = self._guardar_logo(
+                    entrada["logo_conteudo"], entrada.get("logo_nome") or "emitente.png"
+                )
+            empresa = Empresa.de_dict(campos)
+            empresa.largura_logo = atual.largura_logo
+            self.config.empresa = empresa
+            outros = [e for e in self.config.emitentes if e.identificador != empresa.identificador]
+            self.config.emitentes = [*outros, empresa] if empresa.identificador else outros
+
+        entrada = dados.get("fornecedor") or {}
+        if entrada:
+            catalogo = self.config.fornecedores
+            identificador = entrada.get("id") or catalogo.padrao or "fornecedor"
+            atual = catalogo.itens.get(identificador) or Fornecedor(id=identificador)
+            if entrada.get("nome"):
+                atual.nome = entrada["nome"]
+            if entrada.get("logo_conteudo"):
+                atual.logo = self._guardar_logo(
+                    entrada["logo_conteudo"], entrada.get("logo_nome") or "fornecedor.png"
+                )
+            atual.id = identificador
+            catalogo.itens[identificador] = atual
+            catalogo.padrao = identificador
+
+        return self.identidade()
+
+    def identidade(self) -> dict[str, Any]:
+        """Quem está comprando, de quem, e as logos — para a interface mostrar."""
+        empresa = self.config.empresa
+        fornecedor = self.config.fornecedores.get(None)
+        return {
+            "emitente": empresa.para_dict(),
+            "emitentes": [
+                {
+                    "identificador": e.identificador,
+                    "razao_social": e.razao_social,
+                    "cnpj": e.cnpj,
+                }
+                for e in self.config.emitentes
+            ],
+            "logo_emitente": self._logo_em_dados(empresa.caminho_logo),
+            "fornecedor": (
+                {"id": fornecedor.id, "nome": fornecedor.nome} if fornecedor else None
+            ),
+            "logo_fornecedor": self._logo_em_dados(fornecedor.caminho_logo) if fornecedor else None,
+            "completo": bool(empresa.razao_social and empresa.cnpj),
         }
 
     def descricao_config(self) -> dict[str, Any]:
