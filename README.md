@@ -18,21 +18,38 @@ nenhum — as listas e os pedidos ficam guardados na sua própria máquina.
 
 ---
 
+## Entrada
+
+O site pede usuário e senha. As credenciais são **fixas no código**
+(`CONTAS`, em `web/static/index.html`), guardadas como hash SHA-256:
+
+| Usuário | Acessos |
+|---|---|
+| `valdirPR` | ilimitados |
+| `teste123` | 3, depois bloqueia |
+
+A contagem fica no navegador de quem usa. **Isso é uma tranca, não segurança**:
+o código de um site estático é público, e trocar de navegador zera a contagem.
+Para acrescentar ou mudar contas, gere o hash de `usuario:senha:augeo-compras`
+e edite `CONTAS`.
+
 ## Identificação: quem compra, e de quem
 
 No topo da tela ficam as duas partes do negócio — à esquerda o **emitente**
-(razão social, CNPJ e logo de quem faz o pedido), à direita o **fornecedor**.
-Clicar ali abre a tela de identificação, que é também a primeira coisa que
-aparece no primeiro uso.
+(nome, CNPJ e logo de quem faz o pedido), à direita o **fornecedor**. Clicar ali
+abre a tela de identificação, que também é a primeira coisa que aparece no
+primeiro uso.
 
-Uma mesma operação pode faturar por **mais de um CNPJ** (aqui, Paraná em Rede e
-Augeo Engenharia): cada um é um bloco em `config/empresa.yaml`, e a tela
-alterna entre eles com um clique. O que estiver escolhido é o que sai no timbre
-da proforma, CNPJ incluído.
+Dá para cadastrar **quantas empresas quiser** — botão *+ Nova empresa*, e o ✕ no
+canto do chip remove. Paraná em Rede e Augeo Engenharia vêm em
+`config/empresa.yaml` só como ponto de partida. O emitente escolhido é o que sai
+no timbre.
 
-As **duas logos podem ser enviadas pela tela** — a do emitente vai no canto
-superior esquerdo da proforma, a do fornecedor no direito — e a mudança aparece
-na hora, tanto na barra de topo quanto nas próximas planilhas.
+O **CNPJ é opcional** e não vem de lugar nenhum automaticamente: as listas de
+preço não têm essa informação, e o modelo original não trazia CNPJ no timbre.
+
+As **duas logos podem ser enviadas pela tela** — emitente à esquerda da
+proforma, fornecedor à direita — e valem na hora.
 
 ## Os dois modos de uso
 

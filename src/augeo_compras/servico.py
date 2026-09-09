@@ -201,10 +201,21 @@ class Servico:
         return f"data:{tipo};base64,{base64.b64encode(caminho.read_bytes()).decode()}"
 
     def aplicar_identidade(self, dados: dict[str, Any]) -> dict[str, Any]:
-        """Troca o emitente em uso e o fornecedor, incluindo as logos enviadas."""
+        """Troca o emitente em uso e o fornecedor, incluindo as logos enviadas.
+
+        `remover` apaga emitentes pelo identificador; um emitente cujo
+        identificador ainda não existe é criado.
+        """
+        for identificador in dados.get("remover") or []:
+            self.config.emitentes = [
+                e for e in self.config.emitentes if e.identificador != identificador
+            ]
+
         entrada = dados.get("emitente") or {}
         if entrada:
-            atual = self.config.emitente(entrada.get("identificador", "")) or self.config.empresa
+            atual = self.config.emitente(entrada.get("identificador", "")) or Empresa(
+                identificador=entrada.get("identificador", "") or "emitente"
+            )
             campos = {**atual.para_dict(), **{k: v for k, v in entrada.items() if k in atual.para_dict()}}
             if entrada.get("logo_conteudo"):
                 campos["logo"] = self._guardar_logo(
@@ -215,6 +226,9 @@ class Servico:
             self.config.empresa = empresa
             outros = [e for e in self.config.emitentes if e.identificador != empresa.identificador]
             self.config.emitentes = [*outros, empresa] if empresa.identificador else outros
+
+        if not self.config.emitentes:
+            self.config.emitentes = [self.config.empresa]
 
         entrada = dados.get("fornecedor") or {}
         if entrada:
@@ -252,7 +266,9 @@ class Servico:
                 {"id": fornecedor.id, "nome": fornecedor.nome} if fornecedor else None
             ),
             "logo_fornecedor": self._logo_em_dados(fornecedor.caminho_logo) if fornecedor else None,
-            "completo": bool(empresa.razao_social and empresa.cnpj),
+            # O CNPJ é opcional: não vem de lugar nenhum automaticamente, e
+            # nem toda proforma precisa dele.
+            "completo": bool(empresa.razao_social),
         }
 
     def descricao_config(self) -> dict[str, Any]:

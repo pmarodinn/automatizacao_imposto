@@ -442,6 +442,20 @@ td input.preco-edit{width:92px}
 #tour-balao button{padding:6px 12px;font-size:13px}
 
 /* ===================================================================
+   Entrada
+   =================================================================== */
+#entrada{position:fixed;inset:0;z-index:260;background:var(--fundo);
+  display:grid;place-items:center;padding:24px;animation:surgir var(--medio) var(--ease)}
+#entrada .caixa{width:100%;max-width:340px}
+#entrada h2{font-size:21px;margin:6px 0 4px}
+#entrada .sub{color:var(--texto-fraco);font-size:13px;margin-bottom:22px}
+#entrada .campos{grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+#entrada button{width:100%;padding:10px}
+#entrada .erro{font-size:12.5px;color:var(--acento);margin-top:12px;min-height:18px}
+#entrada .restantes{font-size:12px;color:var(--texto-fraco);margin-top:14px}
+.sair{font-size:11.5px}
+
+/* ===================================================================
    Tela de identificação
    =================================================================== */
 #identificacao{position:fixed;inset:0;z-index:220;background:var(--fundo);overflow-y:auto;
@@ -464,7 +478,8 @@ td input.preco-edit{width:92px}
   text-transform:uppercase;letter-spacing:.07em;color:var(--texto-fraco)}
 .cartao-id .corpo{display:grid;gap:12px}
 
-.escolha-emitente{display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px 0}
+.escolha-emitente{display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px 0;align-items:stretch}
+.chip-envolto{position:relative;display:flex}
 .chip-emitente{display:flex;flex-direction:column;align-items:flex-start;gap:1px;
   padding:8px 13px;border:1px solid var(--borda);border-radius:var(--raio-p);
   background:var(--painel-2);cursor:pointer;text-align:left;box-shadow:none}
@@ -473,6 +488,14 @@ td input.preco-edit{width:92px}
   box-shadow:0 0 0 3px var(--acento-tenue)}
 .chip-emitente b{font-size:12.5px;font-weight:600;color:var(--texto)}
 .chip-emitente small{font-size:10.5px;color:var(--texto-fraco);font-variant-numeric:tabular-nums}
+.chip-emitente.novo{justify-content:center;border-style:dashed;color:var(--texto-fraco);
+  font-size:12.5px;font-weight:500}
+.chip-emitente.novo:hover{color:var(--acento)}
+.apagar-chip{position:absolute;top:-6px;right:-6px;width:19px;height:19px;padding:0;
+  border-radius:50%;font-size:10px;line-height:1;background:var(--painel);
+  border:1px solid var(--borda);color:var(--texto-fraco);opacity:0;box-shadow:var(--sombra-1)}
+.chip-envolto:hover .apagar-chip{opacity:1}
+.apagar-chip:hover{color:var(--acento);border-color:var(--acento);transform:none}
 
 .area-logo{display:flex;align-items:center;gap:14px;padding:13px;
   border:1px dashed var(--borda);border-radius:var(--raio-p);background:var(--painel-2)}
@@ -488,6 +511,7 @@ td input.preco-edit{width:92px}
   animation:subir var(--lento) var(--ease) both;animation-delay:150ms}
 .rodape-id button{padding:10px 18px}
 .pendencia{font-size:12.5px;color:var(--aviso)}
+.opcional{font-weight:500;text-transform:none;letter-spacing:0;opacity:.7}
 
 /* ===================================================================
    Carregamento do sistema no navegador
@@ -531,8 +555,25 @@ td input.preco-edit{width:92px}
     <h2>Automação de compras</h2>
     <div class="barra"><div id="barra-progresso"></div></div>
     <p id="carregando-texto">Preparando…</p>
-    <p class="dica">O sistema roda inteiro dentro do seu navegador. Suas listas de
-      preço e seus pedidos não são enviados para servidor nenhum.</p>
+    <p class="dica">Roda dentro do seu navegador. Nada é enviado para servidor.</p>
+  </div>
+</div>
+
+<!-- =================================================== entrada -->
+<div id="entrada" class="escondido">
+  <div class="caixa">
+    <span class="selo-marca">Automação de compras</span>
+    <h2>Entrar</h2>
+    <p class="sub">Acesso restrito.</p>
+    <div class="campos">
+      <div><label for="usuario">Usuário</label>
+        <input id="usuario" autocomplete="username" autofocus></div>
+      <div><label for="senha">Senha</label>
+        <input id="senha" type="password" autocomplete="current-password"></div>
+    </div>
+    <button class="principal" onclick="entrarNoSistema()">Entrar</button>
+    <div class="erro" id="entrada-erro"></div>
+    <div class="restantes escondido" id="entrada-restantes"></div>
   </div>
 </div>
 
@@ -541,9 +582,7 @@ td input.preco-edit{width:92px}
   <div class="caixa">
     <span class="selo-marca">Identificação</span>
     <h2>Quem está comprando, e de quem</h2>
-    <p class="sub">É o que aparece no timbre da proforma. A mesma operação pode faturar
-      por mais de um CNPJ — escolha abaixo qual está em uso. As logos podem ser trocadas
-      a qualquer momento e valem para as próximas planilhas geradas.</p>
+    <p class="sub">É o que sai no timbre da proforma.</p>
 
     <div class="dupla">
       <!-- ---------------- emitente ---------------- -->
@@ -559,7 +598,7 @@ td input.preco-edit{width:92px}
           <div class="campos" style="grid-template-columns:1.4fr 1fr">
             <div><label for="id-razao">Razão social</label>
               <input id="id-razao" placeholder="Ex.: AUGEO ENGENHARIA LTDA"></div>
-            <div><label for="id-cnpj">CNPJ</label>
+            <div><label for="id-cnpj">CNPJ <span class="opcional">opcional</span></label>
               <input id="id-cnpj" placeholder="00.000.000/0001-00" inputmode="numeric"></div>
           </div>
           <div>
@@ -576,8 +615,8 @@ td input.preco-edit{width:92px}
           <div class="area-logo">
             <div class="previa" id="previa-emitente"><span>sem logo</span></div>
             <div class="texto">
-              <strong>Logotipo do emitente</strong>
-              <span class="dica">Aparece no canto superior esquerdo da proforma.</span>
+              <strong>Logo</strong>
+              <span class="dica">Canto superior esquerdo da proforma.</span>
             </div>
             <button onclick="$('arquivo-logo-emitente').click()">Trocar logo</button>
             <input id="arquivo-logo-emitente" type="file" accept="image/*" class="escondido"
@@ -599,17 +638,13 @@ td input.preco-edit{width:92px}
           <div class="area-logo">
             <div class="previa" id="previa-fornecedor"><span>sem logo</span></div>
             <div class="texto">
-              <strong>Logotipo do fornecedor</strong>
-              <span class="dica">Vai no canto superior direito da proforma.</span>
+              <strong>Logo</strong>
+              <span class="dica">Canto superior direito da proforma.</span>
             </div>
             <button onclick="$('arquivo-logo-fornecedor').click()">Trocar logo</button>
             <input id="arquivo-logo-fornecedor" type="file" accept="image/*" class="escondido"
                    onchange="escolherLogo('fornecedor', this.files[0])">
           </div>
-
-          <p class="dica">Comprando de mais de um fabricante, a logo que sai na proforma é a
-            do fornecedor dos itens do pedido — este nome é o padrão para itens sem
-            fornecedor definido.</p>
         </div>
       </section>
     </div>
@@ -625,71 +660,54 @@ td input.preco-edit{width:92px}
 <!-- =================================================== página inicial -->
 <div id="inicio">
   <div class="caixa">
-    <span class="selo-marca">Paraná em Rede · Augeo</span>
     <h2>Automação de compras</h2>
-    <p class="sub">Monta a planilha <b>TOTAL PRICE AND PROFORMA</b> a partir das listas de
-      preço do fornecedor: você escolhe os itens, o sistema aplica o desconto e gera o
-      arquivo do Excel com todas as fórmulas prontas.</p>
+    <p class="sub">Monta a planilha <b>TOTAL PRICE AND PROFORMA</b> a partir das listas
+      de preço do fornecedor, já com o desconto aplicado.</p>
 
     <div class="passos">
       <div class="passo" style="--i:0"><div class="n">1</div><h3>Busque os itens</h3>
-        <p>Procure no catálogo por descrição, tipo ou part number e clique para adicionar
-           ao pedido. O preço com desconto já aparece na lista.</p></div>
+        <p>Clique para adicionar. O preço já vem com desconto.</p></div>
       <div class="passo" style="--i:1"><div class="n">2</div><h3>Ajuste o pedido</h3>
-        <p>Digite as quantidades, o número da proforma, a data e o frete. Dá para dividir
-           a compra em mais de uma proforma.</p></div>
+        <p>Quantidades, número da proforma, data e frete.</p></div>
       <div class="passo" style="--i:2"><div class="n">3</div><h3>Confira os totais</h3>
-        <p>Os valores são recalculados a cada mudança, com aviso quando a proforma declara
-           algo diferente do que está sendo comprado.</p></div>
+        <p>Recalculados a cada mudança.</p></div>
       <div class="passo" style="--i:3"><div class="n">4</div><h3>Gere a planilha</h3>
-        <p>Um clique baixa o arquivo <code>.xlsx</code> pronto para enviar, com as duas abas
-           ligadas por fórmula.</p></div>
+        <p>Baixa o <code>.xlsx</code> pronto, com as fórmulas ligadas.</p></div>
     </div>
 
     <div class="glossario">
       <dl>
-        <dt>As duas abas da planilha</dt>
-        <dd><b>NET PRICE</b> é o controle interno: um item por linha, com o preço já
-          descontado e o total da compra. <b>PROFORMA</b> é o pedido de compra em si —
-          com timbre, número, data e condições — e puxa os dados da aba de controle por
-          fórmula. Mudar uma quantidade lá atualiza tudo aqui, direto no Excel.</dd>
+        <dt>As duas abas</dt>
+        <dd><b>NET PRICE</b> é o controle interno. <b>PROFORMA</b> é o pedido, e puxa
+          os dados dali por fórmula — mudar uma quantidade atualiza tudo no Excel.</dd>
 
-        <dt>Preço bruto e preço líquido</dt>
-        <dd>As listas trazem o <i>Gross Price</i>. O sistema aplica o desconto negociado
-          (hoje <b id="glossario-desconto">44,5%</b>) e usa o resultado na planilha.
-          <span id="glossario-onde-desconto">Para mudar o percentual, edite
-          <code>config/comercial.yaml</code>.</span></dd>
+        <dt>Preço bruto e líquido</dt>
+        <dd>Sobre o <i>Gross Price</i> da lista incide o desconto
+          (<b id="glossario-desconto">44,5%</b>).
+          <span id="glossario-onde-desconto">Muda em <code>config/comercial.yaml</code>.</span></dd>
 
         <dt>Service Value</dt>
-        <dd>É a diferença entre <b>o que está sendo comprado</b> e <b>o que a proforma
-          declara</b>. Se você comprar 5 peças e declarar 6, a diferença aparece aqui
-          automaticamente — o total geral continua sendo o custo real da compra.</dd>
+        <dd>A diferença entre o que se compra e o que a proforma declara. Comprando 5 e
+          declarando 6, ela aparece aqui — e o total geral continua sendo o custo real.</dd>
 
-        <dt>Quem está comprando, e de quem</dt>
-        <dd>No alto da tela ficam as duas partes do negócio: à esquerda o <b>emitente</b>
-          (razão social, CNPJ e logo de quem faz o pedido) e à direita o <b>fornecedor</b>.
-          Clique ali para trocar de CNPJ — a mesma operação pode faturar por mais de uma
-          pessoa jurídica — ou para enviar outras logos. É exatamente o que sai no timbre
-          da proforma.</dd>
+        <dt>Emitente e fornecedor</dt>
+        <dd>No alto da tela. Clique para trocar de empresa, de CNPJ ou de logo — é o que
+          sai no timbre.</dd>
 
         <dt>A logo do fornecedor</dt>
-        <dd>Sai sozinha, escolhida pelos itens do pedido: comprando produtos Securiton, a
-          proforma sai com a logo da Securiton. A sua logo fica sempre no canto esquerdo.</dd>
+        <dd>Escolhida pelos itens do pedido. A do emitente fica sempre à esquerda.</dd>
 
         <dt>Rascunhos</dt>
-        <dd><b>Salvar rascunho</b> guarda o pedido em andamento — itens, quantidades e
-          dados da proforma — para você continuar depois pelo seletor <i>Abrir rascunho
-          salvo</i>. Não gera planilha: isso é o botão <b>Gerar planilha</b>.</dd>
+        <dd><b>Salvar rascunho</b> guarda o pedido para continuar depois. Não gera
+          planilha — isso é o <b>Gerar planilha</b>.</dd>
 
-        <dt>Listas novas a cada trimestre</dt>
-        <dd id="glossario-listas">Copie os arquivos novos para a pasta das listas e clique em
-          <b>Recarregar listas</b> no topo da tela. Não precisa configurar nada.</dd>
+        <dt id="glossario-listas-titulo">Listas novas</dt>
+        <dd id="glossario-listas">Copie os arquivos para a pasta das listas e clique em
+          <b>Recarregar listas</b>.</dd>
 
-        <dt class="escondido" id="glossario-onde-roda-titulo">Onde isto roda</dt>
-        <dd class="escondido" id="glossario-onde-roda">Tudo acontece <b>dentro do seu
-          navegador</b> — o mesmo programa em Python, compilado para rodar aqui. Suas
-          listas de preço e seus pedidos não são enviados para servidor nenhum, e ficam
-          guardados nesta máquina para o próximo acesso.</dd>
+        <dt class="escondido" id="glossario-onde-roda-titulo">Onde roda</dt>
+        <dd class="escondido" id="glossario-onde-roda">Dentro do seu navegador. Listas e
+          pedidos não saem desta máquina.</dd>
       </dl>
     </div>
 
@@ -730,6 +748,7 @@ td input.preco-edit{width:92px}
     <button class="fantasma" id="btn-recarregar" onclick="recarregarCatalogo()"
       title="Reler as listas de preço do disco">Recarregar listas</button>
     <button class="fantasma" onclick="exportarCatalogo()">Catálogo em Excel</button>
+    <button class="fantasma sair escondido" id="btn-sair" onclick="sair()">Sair</button>
   </div>
 </header>
 
@@ -742,8 +761,7 @@ td input.preco-edit{width:92px}
       <div class="listas">
         <div class="listas-info">
           <strong id="listas-titulo">Nenhuma lista carregada</strong>
-          <span class="dica" id="listas-detalhe">Escolha os arquivos que o fabricante enviou
-            (.xlsx, .xls ou .csv).</span>
+          <span class="dica" id="listas-detalhe">.xlsx, .xls ou .csv</span>
         </div>
         <div class="listas-acoes">
           <label class="campo-desconto">Desconto
@@ -790,7 +808,7 @@ td input.preco-edit{width:92px}
       <div class="corpo" id="lista-proformas"></div>
       <div class="corpo" style="padding-top:0">
         <button onclick="adicionarProforma()">Dividir em outra proforma</button>
-        <div class="dica">Use mais de uma proforma quando a compra for faturada em remessas separadas.</div>
+        <div class="dica">Uma por remessa faturada separadamente.</div>
       </div>
     </details>
 
@@ -806,7 +824,7 @@ td input.preco-edit{width:92px}
         </tr></thead>
         <tbody id="itens"></tbody>
       </table>
-      <div class="vazio" id="itens-vazio">Nenhum item ainda — busque no catálogo ao lado.</div>
+      <div class="vazio" id="itens-vazio">Busque no catálogo ao lado.</div>
     </div>
 
     <details>
@@ -1179,6 +1197,105 @@ addEventListener("scroll", (e) => {
 addEventListener("resize", fecharSelects);
 
 // --------------------------------------------------------------------------
+// Entrada
+//
+// Tranca simples, não segurança: num site estático o código vem junto, então
+// quem abrir o fonte encontra estes hashes e pode testá-los à vontade. O
+// limite de usos também mora no navegador — outro navegador, outra contagem.
+// Serve para não sair da mão, não para proteger dado nenhum.
+// --------------------------------------------------------------------------
+const CONTAS = {
+  // usuário (minúsculo) -> { hash de "usuario:senha:augeo-compras", usos }
+  "valdirpr": {hash:"1a2302f94f91aaa55a56268d978317a257fd6102402b2ce4bfaaf54883e48a17",
+               usos: Infinity},
+  "teste123": {hash:"90b3ba0a21557384ec0b782297432280f39c168cbedd5d8e10a5ff6ac5794510",
+               usos: 3},
+};
+const CHAVE_SESSAO = "augeo-compras:sessao";
+const CHAVE_USOS = "augeo-compras:usos";
+
+async function impressao(usuario, senha){
+  const dados = new TextEncoder().encode(`${usuario}:${senha}:augeo-compras`);
+  const resumo = await crypto.subtle.digest("SHA-256", dados);
+  return [...new Uint8Array(resumo)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function usosDe(usuario){
+  try { return JSON.parse(localStorage.getItem(CHAVE_USOS) || "{}")[usuario] || 0; }
+  catch(e){ return 0; }
+}
+
+function registrarUso(usuario){
+  try {
+    const usos = JSON.parse(localStorage.getItem(CHAVE_USOS) || "{}");
+    usos[usuario] = (usos[usuario] || 0) + 1;
+    localStorage.setItem(CHAVE_USOS, JSON.stringify(usos));
+  } catch(e){ /* modo privativo: conta só nesta sessão */ }
+}
+
+function sessaoAberta(){
+  try { return localStorage.getItem(CHAVE_SESSAO); } catch(e){ return null; }
+}
+
+async function entrarNoSistema(){
+  const usuario = $("usuario").value.trim().toLowerCase();
+  const senha = $("senha").value;
+  const erro = $("entrada-erro");
+  const conta = CONTAS[usuario];
+
+  if(!conta || await impressao(usuario, senha) !== conta.hash){
+    erro.textContent = "Usuário ou senha inválidos.";
+    $("senha").value = "";
+    return;
+  }
+  if(usosDe(usuario) >= conta.usos){
+    erro.textContent = `Este acesso já foi usado ${conta.usos} vezes e está encerrado.`;
+    return;
+  }
+
+  registrarUso(usuario);
+  try { localStorage.setItem(CHAVE_SESSAO, usuario); } catch(e){}
+  erro.textContent = "";
+  $("entrada").classList.add("escondido");
+  mostrarRestantes(usuario);
+  iniciar();
+}
+
+function mostrarRestantes(usuario){
+  const conta = CONTAS[usuario];
+  const botao = $("btn-sair");
+  botao.classList.remove("escondido");
+  if(!conta || conta.usos === Infinity){ botao.textContent = "Sair"; return; }
+  const restam = Math.max(0, conta.usos - usosDe(usuario));
+  botao.textContent = `Sair (${restam} ${restam === 1 ? "restante" : "restantes"})`;
+}
+
+function sair(){
+  try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
+  location.reload();
+}
+
+/** Mostra a entrada, ou libera direto quando a sessão já está aberta. */
+function verificarEntrada(){
+  const usuario = sessaoAberta();
+  if(usuario && CONTAS[usuario]){
+    mostrarRestantes(usuario);
+    return true;
+  }
+  $("entrada").classList.remove("escondido");
+  const restantes = $("entrada-restantes");
+  const gastos = usosDe("teste123");
+  if(gastos){
+    restantes.classList.remove("escondido");
+    restantes.textContent = `Acesso de teste: ${Math.max(0, CONTAS["teste123"].usos - gastos)} de ${CONTAS["teste123"].usos} restantes.`;
+  }
+  return false;
+}
+
+$("senha").addEventListener("keydown", (e) => { if(e.key === "Enter") entrarNoSistema(); });
+$("usuario").addEventListener("keydown", (e) => { if(e.key === "Enter") $("senha").focus(); });
+
+// --------------------------------------------------------------------------
 // Identificação: quem compra, de quem, e com quais logos
 //
 // É o que vai no timbre da proforma. Fica guardada nesta máquina, então só
@@ -1200,12 +1317,18 @@ function desenharIdentificacao(){
   const identidade = estado.identidade || {};
   const emitente = idEmEdicao.emitente || identidade.emitente || {};
 
-  $("escolha-emitente").innerHTML = (identidade.emitentes || []).map(e => `
-    <button class="chip-emitente ${e.identificador === emitente.identificador ? "ativo" : ""}"
-            onclick="trocarEmitente('${esc(e.identificador)}')">
-      <b>${esc(e.razao_social || e.identificador)}</b>
-      <small>${esc(e.cnpj || "sem CNPJ")}</small>
-    </button>`).join("");
+  const lista = identidade.emitentes || [];
+  $("escolha-emitente").innerHTML = lista.map(e => `
+    <span class="chip-envolto">
+      <button class="chip-emitente ${e.identificador === emitente.identificador ? "ativo" : ""}"
+              onclick="trocarEmitente('${esc(e.identificador)}')">
+        <b>${esc(e.razao_social || "sem nome")}</b>
+        <small>${esc(e.cnpj || "sem CNPJ")}</small>
+      </button>
+      ${lista.length > 1 ? `<button class="apagar-chip" title="Remover"
+        onclick="removerEmitente('${esc(e.identificador)}')">✕</button>` : ""}
+    </span>`).join("") +
+    `<button class="chip-emitente novo" onclick="novoEmitente()">+ Nova empresa</button>`;
 
   $("id-razao").value = emitente.razao_social || "";
   $("id-cnpj").value = emitente.cnpj || "";
@@ -1223,6 +1346,24 @@ function desenharIdentificacao(){
 function desenharPrevia(qual, fonte){
   const alvo = $("previa-" + qual);
   alvo.innerHTML = fonte ? `<img src="${fonte}" alt="">` : "<span>sem logo</span>";
+}
+
+function novoEmitente(){
+  idEmEdicao.emitente = {identificador: "emitente-" + Date.now(), razao_social: "",
+                         cnpj: "", endereco: [], telefone: "", fax: "",
+                         cidade: "", responsavel: ""};
+  idEmEdicao.logos.emitente = null;
+  desenharIdentificacao();
+  $("id-razao").focus();
+}
+
+async function removerEmitente(identificador){
+  try {
+    estado.identidade = await Dados.definirIdentidade({remover: [identificador]});
+    if(idEmEdicao.emitente?.identificador === identificador) idEmEdicao.emitente = null;
+    desenharIdentificacao();
+    desenharTopo();
+  } catch(e){ aviso("Erro ao remover: " + e.message, true); }
 }
 
 function trocarEmitente(identificador){
@@ -1288,13 +1429,13 @@ function montarIdentidade(){
 
 async function salvarIdentificacao(){
   const identidade = montarIdentidade();
+  // Só o nome é obrigatório dos dois lados; o CNPJ é opcional.
   const faltando = [];
   if(!identidade.emitente.razao_social) faltando.push("a razão social");
-  if(!identidade.emitente.cnpj) faltando.push("o CNPJ");
   if(!identidade.fornecedor.nome) faltando.push("o nome do fornecedor");
   const pendencia = $("id-pendencia");
   if(faltando.length){
-    pendencia.textContent = "Preencha " + faltando.join(", ") + ".";
+    pendencia.textContent = "Preencha " + faltando.join(" e ") + ".";
     pendencia.classList.remove("escondido");
     return;
   }
@@ -1326,8 +1467,9 @@ function desenharTopo(){
   const identidade = estado.identidade || {};
   const emitente = identidade.emitente || {};
   $("nome-emitente").textContent = emitente.razao_social || "Definir emitente";
-  $("cnpj-emitente").textContent = emitente.cnpj
-    ? "CNPJ " + emitente.cnpj : "defina quem está comprando";
+  // Sem CNPJ (que é opcional) a linha some, em vez de virar aviso.
+  $("cnpj-emitente").textContent = emitente.cnpj ? "CNPJ " + emitente.cnpj
+    : (emitente.razao_social ? "" : "defina quem está comprando");
   $("nome-fornecedor").textContent = identidade.fornecedor?.nome || "Definir fornecedor";
   // O nome pode ser cortado na barra; o título completo fica na dica do botão.
   $("btn-identidade").title =
@@ -1365,27 +1507,27 @@ function seguirDaIdentificacao(){
 // --------------------------------------------------------------------------
 const PASSOS_TOUR = [
   {alvo:"#btn-identidade", titulo:"Quem compra, e de quem",
-   texto:"À esquerda o emitente — razão social, CNPJ e logo de quem faz o pedido; à direita o fornecedor. Clique aqui para trocar de CNPJ ou enviar outras logos. É o que sai no timbre da proforma."},
-  {alvo:"#stats", titulo:"O catálogo carregado",
-   texto:"Quantos itens foram lidos das listas de preço, quantos sistemas e o desconto que está sendo aplicado sobre o preço de lista."},
-  {alvo:"#busca", titulo:"Buscar itens",
-   texto:"Digite parte da descrição, o tipo (ex.: ASD 535-3) ou o part number. A busca ignora acentos e a ordem das palavras."},
-  {alvo:"#resultados", titulo:"Resultados do catálogo",
-   texto:"Cada linha mostra o preço já com desconto e, riscado abaixo, o preço de lista. Clique para adicionar ao pedido — clicar de novo aumenta a quantidade."},
-  {alvo:"#dados-pedido", titulo:"Identificação do pedido",
-   texto:"A referência dá nome ao arquivo gerado e ao pedido salvo. A data é a que aparece no timbre da proforma."},
+   texto:"Clique para trocar de empresa, de CNPJ ou de logo. É o que sai no timbre."},
+  {alvo:"#stats", titulo:"O catálogo",
+   texto:"Itens lidos das listas, sistemas e o desconto aplicado."},
+  {alvo:"#busca", titulo:"Buscar",
+   texto:"Descrição, tipo ou part number. Ignora acentos e a ordem das palavras."},
+  {alvo:"#resultados", titulo:"Resultados",
+   texto:"Preço com desconto em cima, de lista riscado embaixo. Clique para adicionar; de novo, aumenta a quantidade."},
+  {alvo:"#dados-pedido", titulo:"Dados do pedido",
+   texto:"A referência nomeia o arquivo. A data vai no timbre."},
   {alvo:"#bloco-proformas", titulo:"Proformas",
-   texto:"Número, data, frete e condições de pagamento de cada proforma. Se a compra for faturada em remessas separadas, crie mais de uma — sai uma aba para cada."},
-  {alvo:"#area-itens", titulo:"Os itens do pedido",
-   texto:"Ajuste a quantidade e, se precisar, o preço unitário. O botão de engrenagem abre os ajustes da proforma: quantidade ou preço declarados diferentes do que está sendo comprado."},
-  {alvo:"#totais", titulo:"Os totais",
-   texto:"Total da compra é o custo real. Valor faturado é o que as proformas declaram. Service Value é a diferença entre os dois — igual ao que a planilha antiga calculava à mão."},
-  {alvo:"#selo-fornecedor", titulo:"A logo da proforma",
-   texto:"Escolhida sozinha pelos itens do pedido. Comprando produtos Securiton, a proforma sai com a logo da Securiton."},
-  {alvo:"#btn-gerar", titulo:"Gerar a planilha",
-   texto:"Baixa o arquivo .xlsx com a aba de controle e a(s) proforma(s), com todas as fórmulas ligadas. Uma cópia fica em data/saida/."},
+   texto:"Número, data, frete e pagamento. Faturando em remessas, crie mais de uma — sai uma aba para cada."},
+  {alvo:"#area-itens", titulo:"Itens",
+   texto:"Quantidade e preço. A engrenagem abre os ajustes da proforma."},
+  {alvo:"#totais", titulo:"Totais",
+   texto:"Service Value é a diferença entre o que se compra e o que a proforma declara."},
+  {alvo:"#selo-fornecedor", titulo:"Logo da proforma",
+   texto:"Escolhida pelos itens do pedido."},
+  {alvo:"#btn-gerar", titulo:"Gerar",
+   texto:"Baixa o .xlsx com a aba de controle e as proformas."},
   {alvo:"#btn-recarregar", titulo:"Listas novas",
-   texto:"Quando chegarem as listas do próximo trimestre, copie os arquivos para a pasta das listas e clique aqui. Nada mais precisa ser configurado."},
+   texto:"Chegando as listas do trimestre, copie para a pasta e clique aqui."},
 ];
 
 let passoAtual = 0;
@@ -1587,20 +1729,16 @@ async function prepararModoNavegador(){
 
   // A apresentação e o guia falam de pastas no disco, que aqui não existem.
   $("glossario-listas").innerHTML =
-    "Clique em <b>Escolher arquivos…</b> e selecione as listas novas. Elas ficam " +
-    "guardadas neste navegador, prontas no próximo acesso.";
-  $("glossario-onde-desconto").textContent =
-    "Ajuste o percentual no campo Desconto, ao lado do botão de escolher arquivos.";
+    "Clique em <b>Escolher arquivos…</b>. Ficam guardadas neste navegador.";
+  $("glossario-onde-desconto").textContent = "Ajuste no campo Desconto.";
   $("glossario-onde-roda-titulo").classList.remove("escondido");
   $("glossario-onde-roda").classList.remove("escondido");
   PASSOS_TOUR.find(p => p.alvo === "#btn-recarregar").texto =
-    "Quando chegarem as listas do próximo trimestre, clique aqui e escolha os arquivos " +
-    "novos. Eles ficam guardados neste navegador.";
+    "Chegando listas novas, clique aqui e escolha os arquivos.";
   PASSOS_TOUR.splice(2, 0, {
     alvo: "#painel-listas",
-    titulo: "Suas listas de preço",
-    texto: "Escolha aqui os arquivos que o fabricante enviou e informe o desconto " +
-           "negociado. Nada é enviado para servidor: a leitura acontece nesta máquina.",
+    titulo: "Suas listas",
+    texto: "Escolha os arquivos e informe o desconto. Nada sai desta máquina.",
   });
 
   const guardado = localStorage.getItem("augeo-compras:desconto");
@@ -1632,11 +1770,11 @@ function mostrarEstadoListas(resultado){
   const titulo = $("listas-titulo"), detalhe = $("listas-detalhe");
   if(!resultado || !resultado.total_itens){
     titulo.textContent = "Nenhuma lista carregada";
-    detalhe.textContent = "Escolha os arquivos que o fabricante enviou (.xlsx, .xls ou .csv).";
+    detalhe.textContent = ".xlsx, .xls ou .csv";
     return;
   }
   titulo.textContent = `${resultado.total_itens} itens em ${resultado.sistemas.length} sistemas`;
-  detalhe.textContent = `${resultado.arquivos.length} arquivo(s) guardado(s) neste navegador`;
+  detalhe.textContent = `${resultado.arquivos.length} arquivo(s) neste navegador`;
   detalhe.title = resultado.arquivos.join("\n");
 }
 
@@ -1683,7 +1821,7 @@ async function buscar(){
   if(!itens.length){
     alvo.innerHTML = `<div class="vazio">${
       estado.config?.total_itens ? "Nenhum item encontrado."
-        : "Carregue as listas de preço para começar."}</div>`;
+        : "Carregue as listas para começar."}</div>`;
     return;
   }
   // Com um sistema filtrado, repetir o nome em toda linha só polui a lista.
@@ -1812,8 +1950,7 @@ function desenharItens(){
             value="${linha.preco_proforma ?? ""}"
             onchange="alterar(${indice},'preco_proforma',this.value); desenharItens()"></div>
       </div>
-      <div class="dica">Deixe em branco para declarar na proforma o mesmo que está sendo comprado.
-        Qualquer diferença vira <b>Service Value</b> na aba de controle.</div>
+      <div class="dica">Em branco = igual à compra. A diferença vira <b>Service Value</b>.</div>
     </td></tr>` : ""}`;
   }).join("");
   fluidificarSelects();
@@ -2013,7 +2150,9 @@ function limparPedido(){
 }
 
 ["referencia","cliente","data"].forEach(id => $(id).addEventListener("change", atualizarResumo));
-iniciar();
+
+// O sistema só arranca depois da entrada.
+if(verificarEntrada()) iniciar();
 </script>
 </body>
 </html>

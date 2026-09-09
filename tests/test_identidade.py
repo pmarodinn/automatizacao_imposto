@@ -60,11 +60,42 @@ def test_sem_cnpj_o_timbre_nao_ganha_linha_vazia():
 # --------------------------------------------------------------------------- #
 # Troca de identidade
 # --------------------------------------------------------------------------- #
-def test_identidade_comeca_incompleta_sem_cnpj(servico):
+def test_cnpj_e_opcional(servico):
+    """Não vem de lugar nenhum automaticamente; só a razão social é exigida."""
     identidade = servico.identidade()
-    assert identidade["completo"] is False
+    assert identidade["emitente"]["cnpj"] == ""
+    assert identidade["completo"] is True
+
+    servico.aplicar_identidade({"emitente": {"identificador": "novo", "razao_social": ""}})
+    assert servico.identidade()["completo"] is False
+
+
+def test_identidade_lista_os_emitentes_e_as_logos(servico):
+    identidade = servico.identidade()
     assert len(identidade["emitentes"]) == 2
     assert identidade["logo_emitente"].startswith("data:image/")
+
+
+def test_criar_e_remover_emitente(servico):
+    """Qualquer empresa pode usar: os emitentes não são fixos."""
+    servico.aplicar_identidade({
+        "emitente": {"identificador": "terceira", "razao_social": "OUTRA EMPRESA LTDA",
+                     "cnpj": "99.888.777/0001-66"}
+    })
+    identificadores = {e["identificador"] for e in servico.identidade()["emitentes"]}
+    assert identificadores == {"parana-em-rede", "augeo-engenharia", "terceira"}
+    assert servico.config.empresa.razao_social == "OUTRA EMPRESA LTDA"
+
+    servico.aplicar_identidade({
+        "remover": ["parana-em-rede", "augeo-engenharia"],
+        "emitente": {"identificador": "terceira"},
+    })
+    assert [e["identificador"] for e in servico.identidade()["emitentes"]] == ["terceira"]
+
+
+def test_remover_o_ultimo_emitente_nao_deixa_a_lista_vazia(servico):
+    servico.aplicar_identidade({"remover": ["parana-em-rede", "augeo-engenharia"]})
+    assert len(servico.identidade()["emitentes"]) == 1
 
 
 def test_trocar_de_emitente(servico):
