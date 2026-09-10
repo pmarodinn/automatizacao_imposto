@@ -98,6 +98,45 @@ def test_remover_o_ultimo_emitente_nao_deixa_a_lista_vazia(servico):
     assert len(servico.identidade()["emitentes"]) == 1
 
 
+def test_limpar_zera_empresas_e_fornecedor(servico):
+    """Cada login é de uma empresa: só quem mantém o sistema vê as do arquivo."""
+    servico.aplicar_identidade({"limpar": True})
+    identidade = servico.identidade()
+
+    assert identidade["emitentes"] == []
+    assert identidade["emitente"]["razao_social"] == ""
+    assert identidade["logo_emitente"] is None
+    assert identidade["fornecedor"]["nome"] == ""
+    assert identidade["logo_fornecedor"] is None
+    assert identidade["completo"] is False
+
+
+def test_restaurar_devolve_as_empresas_do_arquivo(servico):
+    """O servidor local atende vários logins com uma configuração só."""
+    servico.aplicar_identidade({"limpar": True})
+    assert servico.identidade()["emitentes"] == []
+
+    identidade = servico.aplicar_identidade({"restaurar": True})
+    assert {e["identificador"] for e in identidade["emitentes"]} == {
+        "parana-em-rede", "augeo-engenharia"
+    }
+    assert identidade["fornecedor"]["nome"] == "Securiton AG"
+    assert identidade["logo_emitente"].startswith("data:image/")
+
+
+def test_depois_de_limpar_da_para_cadastrar_a_propria_empresa(servico):
+    servico.aplicar_identidade({"limpar": True})
+    servico.aplicar_identidade({
+        "emitente": {"identificador": "minha", "razao_social": "MINHA EMPRESA LTDA"},
+        "fornecedor": {"id": "meu", "nome": "Meu Fornecedor"},
+    })
+    identidade = servico.identidade()
+
+    assert [e["identificador"] for e in identidade["emitentes"]] == ["minha"]
+    assert identidade["fornecedor"]["nome"] == "Meu Fornecedor"
+    assert identidade["completo"] is True
+
+
 def test_trocar_de_emitente(servico):
     resultado = servico.aplicar_identidade({
         "emitente": {

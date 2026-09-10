@@ -206,6 +206,24 @@ class Servico:
         `remover` apaga emitentes pelo identificador; um emitente cujo
         identificador ainda não existe é criado.
         """
+        # `limpar` e `restaurar` definem de onde a tela parte. Como o servidor
+        # local atende vários logins com uma configuração só, cada um declara
+        # o seu ponto de partida ao entrar, em vez de herdar o do anterior.
+        if dados.get("limpar"):
+            # As empresas do arquivo são de quem mantém o sistema; os demais
+            # logins são de outras empresas e começam com a tela vazia.
+            self.config.emitentes = []
+            self.config.empresa = Empresa(identificador="emitente")
+            for fornecedor in self.config.fornecedores.itens.values():
+                fornecedor.nome = ""
+                fornecedor.logo = ""
+
+        if dados.get("restaurar"):
+            do_arquivo = carregar_config()
+            self.config.empresa = do_arquivo.empresa
+            self.config.emitentes = do_arquivo.emitentes
+            self.config.fornecedores = do_arquivo.fornecedores
+
         for identificador in dados.get("remover") or []:
             self.config.emitentes = [
                 e for e in self.config.emitentes if e.identificador != identificador
@@ -227,7 +245,7 @@ class Servico:
             outros = [e for e in self.config.emitentes if e.identificador != empresa.identificador]
             self.config.emitentes = [*outros, empresa] if empresa.identificador else outros
 
-        if not self.config.emitentes:
+        if not self.config.emitentes and self.config.empresa.razao_social:
             self.config.emitentes = [self.config.empresa]
 
         entrada = dados.get("fornecedor") or {}

@@ -1231,6 +1231,11 @@ const MESTRE = {
 };
 const CHAVE_MESTRE = "augeo-compras:mestre";
 
+// Quem entrou. O mestre herda as empresas do arquivo de configuração; os
+// demais logins são de outras empresas e começam com a tela em branco.
+let usuarioAtual = null;
+let ehMestre = false;
+
 let modoCadastro = false;
 let fb = null;   // {auth, db, funcoes...} carregado sob demanda
 
@@ -1331,6 +1336,8 @@ async function enviarEntrada(){
   if(!modoCadastro && usuario.toLowerCase() === MESTRE.usuario){
     if(await impressao(MESTRE.usuario, senha) === MESTRE.hash){
       try { localStorage.setItem(CHAVE_MESTRE, "1"); } catch(e){}
+      usuarioAtual = MESTRE.usuario;
+      ehMestre = true;
       return liberar("Sair");
     }
     erro.textContent = "Usuário ou senha inválidos.";
@@ -1342,6 +1349,10 @@ async function enviarEntrada(){
     erro.textContent = "Informe o e-mail cadastrado.";
     return;
   }
+
+  // Daqui para baixo é login comum, mesmo que o mestre tenha entrado antes.
+  ehMestre = false;
+  try { localStorage.removeItem(CHAVE_MESTRE); } catch(e){}
 
   ocupado(true, modoCadastro ? "Criando…" : "Entrando…");
   try {
@@ -1355,6 +1366,7 @@ async function enviarEntrada(){
         expira_em: expira,
         tipo: "temporario",
       });
+      usuarioAtual = credencial.user.uid;
       liberar(`Sair (${DIAS_DE_ACESSO} dias)`);
     } else {
       const credencial = await fb.entrar(fb.auth, usuario, senha);
@@ -1370,6 +1382,7 @@ async function enviarEntrada(){
         erro.textContent = "Seu acesso expirou. Fale com o responsável.";
         return;
       }
+      usuarioAtual = credencial.user.uid;
       liberar(`Sair (${restam} ${restam === 1 ? "dia" : "dias"})`);
     }
   } catch(e){
@@ -1390,6 +1403,8 @@ async function sair(){
 async function verificarEntrada(){
   try {
     if(localStorage.getItem(CHAVE_MESTRE) === "1"){
+      usuarioAtual = MESTRE.usuario;
+      ehMestre = true;
       const botao = $("btn-sair");
       botao.classList.remove("escondido");
       botao.textContent = "Sair";
@@ -1407,6 +1422,7 @@ async function verificarEntrada(){
       const ficha = await fb.ler(fichaDe(usuario.uid));
       const restam = ficha.exists() ? diasRestantes(ficha.data().expira_em) : 0;
       if(restam > 0){
+        usuarioAtual = usuario.uid;
         const botao = $("btn-sair");
         botao.classList.remove("escondido");
         botao.textContent = `Sair (${restam} ${restam === 1 ? "dia" : "dias"})`;
@@ -1433,7 +1449,9 @@ $("usuario").addEventListener("keydown", (e) => { if(e.key === "Enter") $("senha
 // É o que vai no timbre da proforma. Fica guardada nesta máquina, então só
 // precisa ser preenchida uma vez — e trocada quando mudar o CNPJ que fatura.
 // --------------------------------------------------------------------------
-const CHAVE_IDENTIDADE = "augeo-compras:identidade";
+// A identidade é guardada por login: máquinas compartilhadas não misturam as
+// empresas de um usuário com as de outro.
+function chaveIdentidade(){ return `augeo-compras:identidade:${usuarioAtual || "anonimo"}`; }
 const idEmEdicao = {emitente: null, logos: {}};
 
 function abrirIdentificacao(){
@@ -1461,6 +1479,8 @@ function desenharIdentificacao(){
         onclick="removerEmitente('${esc(e.identificador)}')">✕</button>` : ""}
     </span>`).join("") +
     `<button class="chip-emitente novo" onclick="novoEmitente()">+ Nova empresa</button>`;
+  // Sem empresa nenhuma, a fileira de chips só ocuparia espaço.
+  $("escolha-emitente").classList.toggle("escondido", lista.length === 0);
 
   $("id-razao").value = emitente.razao_social || "";
   $("id-cnpj").value = emitente.cnpj || "";
@@ -1586,12 +1606,12 @@ async function salvarIdentificacao(){
 }
 
 function guardarIdentidade(identidade){
-  try { localStorage.setItem(CHAVE_IDENTIDADE, JSON.stringify(identidade)); }
+  try { localStorage.setItem(chaveIdentidade(), JSON.stringify(identidade)); }
   catch(e){ /* modo privativo: vale só nesta sessão */ }
 }
 
 function identidadeGuardada(){
-  try { return JSON.parse(localStorage.getItem(CHAVE_IDENTIDADE) || "null"); }
+  try { return JSON.parse(localStorage.getItem(chaveIdentidade()) || "null"); }
   catch(e){ return null; }
 }
 
@@ -1788,7 +1808,10 @@ async function iniciar(){
 
   if(c.avisos_catalogo?.length) aviso(c.avisos_catalogo.length + " aviso(s) na leitura das listas");
 
-  // Identificação: reaplica o que já foi preenchido nesta máquina.
+  // Identificação. O ponto de partida é declarado a cada entrada: o mestre
+  // recebe as empresas do arquivo, os demais uma tela em branco. Sem isso, no
+  // servidor local um login herdaria as empresas de quem entrou antes.
+  await Dados.definirIdentidade(ehMestre ? {restaurar: true} : {limpar: true});
   const guardada = identidadeGuardada();
   if(guardada){
     try { estado.identidade = await Dados.definirIdentidade(guardada); }
