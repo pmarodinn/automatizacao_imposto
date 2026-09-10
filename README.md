@@ -20,18 +20,38 @@ nenhum — as listas e os pedidos ficam guardados na sua própria máquina.
 
 ## Entrada
 
-O site pede usuário e senha. As credenciais são **fixas no código**
-(`CONTAS`, em `web/static/index.html`), guardadas como hash SHA-256:
+Dois caminhos:
 
-| Usuário | Acessos |
-|---|---|
-| `valdirPR` | ilimitados |
-| `teste123` | 3, depois bloqueia |
+| | Login mestre | Cadastro |
+|---|---|---|
+| Quem | `valdirPR` | qualquer e-mail |
+| Onde fica | no código (hash SHA-256) | Firebase Auth |
+| Validade | não expira | 7 dias |
 
-A contagem fica no navegador de quem usa. **Isso é uma tranca, não segurança**:
-o código de um site estático é público, e trocar de navegador zera a contagem.
-Para acrescentar ou mudar contas, gere o hash de `usuario:senha:augeo-compras`
-e edite `CONTAS`.
+Quem não tem acesso clica em **Criar cadastro**, informa e-mail e senha, e entra
+na hora — com prazo de uma semana. O prazo fica no Firestore
+(`usuarios/{uid}.expira_em`) e as regras do banco **recusam alterá-lo**, então
+não adianta mexer pelo navegador.
+
+O banco guarda **só o cadastro**. Pedidos, rascunhos e listas de preço continuam
+apenas no navegador de quem usa.
+
+O login mestre é uma tranca, não segurança — o código de um site estático é
+público. Para trocá-lo, gere o hash de `usuario:senha:augeo-compras` e edite
+`MESTRE` em `web/static/index.html`.
+
+### Firebase
+
+Projeto `cadastro-impautomatizado`. Os arquivos `firebase.json`,
+`.firebaserc`, `firestore.rules` e `firestore.indexes.json` estão no
+repositório. Para publicar as regras:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Para dar mais prazo a alguém, edite `expira_em` na ficha dele pelo console do
+Firebase.
 
 ## Identificação: quem compra, e de quem
 

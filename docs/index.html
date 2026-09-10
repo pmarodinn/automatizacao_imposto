@@ -451,8 +451,10 @@ td input.preco-edit{width:92px}
 #entrada .sub{color:var(--texto-fraco);font-size:13px;margin-bottom:22px}
 #entrada .campos{grid-template-columns:1fr;gap:12px;margin-bottom:16px}
 #entrada button{width:100%;padding:10px}
-#entrada .erro{font-size:12.5px;color:var(--acento);margin-top:12px;min-height:18px}
-#entrada .restantes{font-size:12px;color:var(--texto-fraco);margin-top:14px}
+#entrada .erro{font-size:12.5px;color:var(--acento);margin-top:12px;min-height:18px;
+  line-height:1.45}
+#entrada .alternar{width:100%;margin-top:6px;font-size:12.5px;color:var(--texto-fraco)}
+#entrada .alternar:hover{color:var(--acento)}
 .sair{font-size:11.5px}
 
 /* ===================================================================
@@ -563,17 +565,19 @@ td input.preco-edit{width:92px}
 <div id="entrada" class="escondido">
   <div class="caixa">
     <span class="selo-marca">Automação de compras</span>
-    <h2>Entrar</h2>
-    <p class="sub">Acesso restrito.</p>
+    <h2 id="entrada-titulo">Entrar</h2>
+    <p class="sub" id="entrada-sub">Acesso restrito.</p>
     <div class="campos">
-      <div><label for="usuario">Usuário</label>
+      <div><label for="usuario">Usuário ou e-mail</label>
         <input id="usuario" autocomplete="username" autofocus></div>
       <div><label for="senha">Senha</label>
         <input id="senha" type="password" autocomplete="current-password"></div>
     </div>
-    <button class="principal" onclick="entrarNoSistema()">Entrar</button>
+    <button class="principal" id="btn-entrar" onclick="enviarEntrada()">Entrar</button>
     <div class="erro" id="entrada-erro"></div>
-    <div class="restantes escondido" id="entrada-restantes"></div>
+    <button class="fantasma alternar" id="btn-alternar" onclick="alternarCadastro()">
+      Não tem acesso? Criar cadastro
+    </button>
   </div>
 </div>
 
@@ -1199,20 +1203,36 @@ addEventListener("resize", fecharSelects);
 // --------------------------------------------------------------------------
 // Entrada
 //
-// Tranca simples, não segurança: num site estático o código vem junto, então
-// quem abrir o fonte encontra estes hashes e pode testá-los à vontade. O
-// limite de usos também mora no navegador — outro navegador, outra contagem.
-// Serve para não sair da mão, não para proteger dado nenhum.
+// Dois caminhos: o login mestre, que fica no código e não expira, e os demais,
+// que se cadastram pelo Firebase e valem uma semana. Quem guarda o prazo é o
+// Firestore — as regras do banco recusam estender a própria validade, então
+// não adianta mexer pelo navegador.
+//
+// O banco só guarda o cadastro. Pedidos, rascunhos e listas de preço
+// continuam apenas nesta máquina.
 // --------------------------------------------------------------------------
-const CONTAS = {
-  // usuário (minúsculo) -> { hash de "usuario:senha:augeo-compras", usos }
-  "valdirpr": {hash:"1a2302f94f91aaa55a56268d978317a257fd6102402b2ce4bfaaf54883e48a17",
-               usos: Infinity},
-  "teste123": {hash:"90b3ba0a21557384ec0b782297432280f39c168cbedd5d8e10a5ff6ac5794510",
-               usos: 3},
+const FIREBASE = {
+  apiKey: "AIzaSyDDEISMtIE4GOG5wx-uSKnq67_ZG4I3NTs",
+  authDomain: "cadastro-impautomatizado.firebaseapp.com",
+  projectId: "cadastro-impautomatizado",
+  storageBucket: "cadastro-impautomatizado.firebasestorage.app",
+  messagingSenderId: "545168217450",
+  appId: "1:545168217450:web:04eafa095dac4166840113",
 };
-const CHAVE_SESSAO = "augeo-compras:sessao";
-const CHAVE_USOS = "augeo-compras:usos";
+const SDK = "https://www.gstatic.com/firebasejs/11.0.2/";
+const DIAS_DE_ACESSO = 7;
+
+// Login mestre: fica no código mesmo, e por isso não protege nada além de
+// evitar que o endereço circule aberto. A senha vai como hash SHA-256 só
+// para não ficar legível a olho nu no fonte da página.
+const MESTRE = {
+  usuario: "valdirpr",
+  hash: "1a2302f94f91aaa55a56268d978317a257fd6102402b2ce4bfaaf54883e48a17",
+};
+const CHAVE_MESTRE = "augeo-compras:mestre";
+
+let modoCadastro = false;
+let fb = null;   // {auth, db, funcoes...} carregado sob demanda
 
 async function impressao(usuario, senha){
   const dados = new TextEncoder().encode(`${usuario}:${senha}:augeo-compras`);
@@ -1220,79 +1240,191 @@ async function impressao(usuario, senha){
   return [...new Uint8Array(resumo)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-function usosDe(usuario){
-  try { return JSON.parse(localStorage.getItem(CHAVE_USOS) || "{}")[usuario] || 0; }
-  catch(e){ return 0; }
+/** Carrega o SDK do Firebase só quando alguém vai de fato usar o cadastro. */
+async function firebase(){
+  if(fb) return fb;
+  const [app, auth, store] = await Promise.all([
+    import(SDK + "firebase-app.js"),
+    import(SDK + "firebase-auth.js"),
+    import(SDK + "firebase-firestore.js"),
+  ]);
+  const aplicacao = app.initializeApp(FIREBASE);
+  fb = {
+    auth: auth.getAuth(aplicacao),
+    db: store.getFirestore(aplicacao),
+    entrar: auth.signInWithEmailAndPassword,
+    cadastrar: auth.createUserWithEmailAndPassword,
+    sair: auth.signOut,
+    aoMudar: auth.onAuthStateChanged,
+    doc: store.doc,
+    ler: store.getDoc,
+    gravar: store.setDoc,
+    agora: store.serverTimestamp,
+    Timestamp: store.Timestamp,
+  };
+  return fb;
 }
 
-function registrarUso(usuario){
-  try {
-    const usos = JSON.parse(localStorage.getItem(CHAVE_USOS) || "{}");
-    usos[usuario] = (usos[usuario] || 0) + 1;
-    localStorage.setItem(CHAVE_USOS, JSON.stringify(usos));
-  } catch(e){ /* modo privativo: conta só nesta sessão */ }
+function fichaDe(uid){ return fb.doc(fb.db, "usuarios", uid); }
+
+function diasRestantes(expira){
+  const fim = expira?.toDate ? expira.toDate() : new Date(expira);
+  return Math.ceil((fim - Date.now()) / 86400000);
 }
 
-function sessaoAberta(){
-  try { return localStorage.getItem(CHAVE_SESSAO); } catch(e){ return null; }
+// -- interface -------------------------------------------------------------- #
+function alternarCadastro(){
+  modoCadastro = !modoCadastro;
+  $("entrada-titulo").textContent = modoCadastro ? "Criar cadastro" : "Entrar";
+  $("entrada-sub").textContent = modoCadastro
+    ? `Acesso liberado por ${DIAS_DE_ACESSO} dias.` : "Acesso restrito.";
+  $("btn-entrar").textContent = modoCadastro ? "Criar e entrar" : "Entrar";
+  $("btn-alternar").textContent = modoCadastro
+    ? "Já tem acesso? Entrar" : "Não tem acesso? Criar cadastro";
+  $("usuario").setAttribute("placeholder", modoCadastro ? "seu@email.com" : "");
+  $("senha").setAttribute("autocomplete", modoCadastro ? "new-password" : "current-password");
+  $("entrada-erro").textContent = "";
 }
 
-async function entrarNoSistema(){
-  const usuario = $("usuario").value.trim().toLowerCase();
+function ocupado(estaOcupado, rotulo){
+  $("btn-entrar").disabled = estaOcupado;
+  if(rotulo) $("btn-entrar").textContent = rotulo;
+}
+
+function liberar(rotuloSair){
+  $("entrada").classList.add("escondido");
+  const botao = $("btn-sair");
+  botao.classList.remove("escondido");
+  botao.textContent = rotuloSair;
+  iniciar();
+}
+
+const RECADOS = {
+  "auth/invalid-credential": "Usuário ou senha inválidos.",
+  "auth/invalid-email": "E-mail inválido.",
+  "auth/user-not-found": "Usuário ou senha inválidos.",
+  "auth/wrong-password": "Usuário ou senha inválidos.",
+  "auth/email-already-in-use": "Este e-mail já tem cadastro. Use Entrar.",
+  "auth/weak-password": "A senha precisa de pelo menos 6 caracteres.",
+  "auth/network-request-failed": "Sem conexão com o servidor de cadastro.",
+  "auth/operation-not-allowed":
+    "O cadastro por e-mail ainda não foi ativado no Firebase.",
+  "auth/configuration-not-found":
+    "O cadastro ainda não foi ativado no Firebase. Use o login mestre.",
+  "permission-denied":
+    "O banco de cadastro recusou a gravação. Confira as regras do Firestore.",
+  "unavailable": "Sem conexão com o banco de cadastro.",
+};
+
+function recado(erro){
+  return RECADOS[erro?.code] || erro?.message || "Não foi possível entrar.";
+}
+
+// -- entrada ---------------------------------------------------------------- #
+async function enviarEntrada(){
+  const usuario = $("usuario").value.trim();
   const senha = $("senha").value;
   const erro = $("entrada-erro");
-  const conta = CONTAS[usuario];
+  erro.textContent = "";
 
-  if(!conta || await impressao(usuario, senha) !== conta.hash){
+  // Mestre: reconhecido antes de qualquer ida ao Firebase.
+  if(!modoCadastro && usuario.toLowerCase() === MESTRE.usuario){
+    if(await impressao(MESTRE.usuario, senha) === MESTRE.hash){
+      try { localStorage.setItem(CHAVE_MESTRE, "1"); } catch(e){}
+      return liberar("Sair");
+    }
     erro.textContent = "Usuário ou senha inválidos.";
     $("senha").value = "";
     return;
   }
-  if(usosDe(usuario) >= conta.usos){
-    erro.textContent = `Este acesso já foi usado ${conta.usos} vezes e está encerrado.`;
+
+  if(!usuario.includes("@")){
+    erro.textContent = "Informe o e-mail cadastrado.";
     return;
   }
 
-  registrarUso(usuario);
-  try { localStorage.setItem(CHAVE_SESSAO, usuario); } catch(e){}
-  erro.textContent = "";
-  $("entrada").classList.add("escondido");
-  mostrarRestantes(usuario);
-  iniciar();
+  ocupado(true, modoCadastro ? "Criando…" : "Entrando…");
+  try {
+    await firebase();
+    if(modoCadastro){
+      const credencial = await fb.cadastrar(fb.auth, usuario, senha);
+      const expira = fb.Timestamp.fromMillis(Date.now() + DIAS_DE_ACESSO * 86400000);
+      await fb.gravar(fichaDe(credencial.user.uid), {
+        email: usuario,
+        criado_em: fb.agora(),
+        expira_em: expira,
+        tipo: "temporario",
+      });
+      liberar(`Sair (${DIAS_DE_ACESSO} dias)`);
+    } else {
+      const credencial = await fb.entrar(fb.auth, usuario, senha);
+      const ficha = await fb.ler(fichaDe(credencial.user.uid));
+      if(!ficha.exists()){
+        await fb.sair(fb.auth);
+        erro.textContent = "Cadastro sem validade registrada. Fale com o responsável.";
+        return;
+      }
+      const restam = diasRestantes(ficha.data().expira_em);
+      if(restam <= 0){
+        await fb.sair(fb.auth);
+        erro.textContent = "Seu acesso expirou. Fale com o responsável.";
+        return;
+      }
+      liberar(`Sair (${restam} ${restam === 1 ? "dia" : "dias"})`);
+    }
+  } catch(e){
+    erro.textContent = recado(e);
+    $("senha").value = "";
+  } finally {
+    ocupado(false, modoCadastro ? "Criar e entrar" : "Entrar");
+  }
 }
 
-function mostrarRestantes(usuario){
-  const conta = CONTAS[usuario];
-  const botao = $("btn-sair");
-  botao.classList.remove("escondido");
-  if(!conta || conta.usos === Infinity){ botao.textContent = "Sair"; return; }
-  const restam = Math.max(0, conta.usos - usosDe(usuario));
-  botao.textContent = `Sair (${restam} ${restam === 1 ? "restante" : "restantes"})`;
-}
-
-function sair(){
-  try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
+async function sair(){
+  try { localStorage.removeItem(CHAVE_MESTRE); } catch(e){}
+  try { if(fb) await fb.sair(fb.auth); } catch(e){}
   location.reload();
 }
 
-/** Mostra a entrada, ou libera direto quando a sessão já está aberta. */
-function verificarEntrada(){
-  const usuario = sessaoAberta();
-  if(usuario && CONTAS[usuario]){
-    mostrarRestantes(usuario);
-    return true;
+/** Decide se a tela de entrada aparece. Devolve true quando já pode arrancar. */
+async function verificarEntrada(){
+  try {
+    if(localStorage.getItem(CHAVE_MESTRE) === "1"){
+      const botao = $("btn-sair");
+      botao.classList.remove("escondido");
+      botao.textContent = "Sair";
+      return true;
+    }
+  } catch(e){}
+
+  // Sessão do Firebase sobrevive ao fechar o navegador; revalida o prazo.
+  try {
+    await firebase();
+    const usuario = await new Promise(ok => {
+      const parar = fb.aoMudar(fb.auth, u => { parar(); ok(u); });
+    });
+    if(usuario){
+      const ficha = await fb.ler(fichaDe(usuario.uid));
+      const restam = ficha.exists() ? diasRestantes(ficha.data().expira_em) : 0;
+      if(restam > 0){
+        const botao = $("btn-sair");
+        botao.classList.remove("escondido");
+        botao.textContent = `Sair (${restam} ${restam === 1 ? "dia" : "dias"})`;
+        return true;
+      }
+      await fb.sair(fb.auth);
+      $("entrada-erro").textContent = "Seu acesso expirou. Fale com o responsável.";
+    }
+  } catch(e){
+    // Sem rede ou Firebase fora do ar: resta o login mestre.
+    $("entrada-erro").textContent = "";
   }
+
   $("entrada").classList.remove("escondido");
-  const restantes = $("entrada-restantes");
-  const gastos = usosDe("teste123");
-  if(gastos){
-    restantes.classList.remove("escondido");
-    restantes.textContent = `Acesso de teste: ${Math.max(0, CONTAS["teste123"].usos - gastos)} de ${CONTAS["teste123"].usos} restantes.`;
-  }
   return false;
 }
 
-$("senha").addEventListener("keydown", (e) => { if(e.key === "Enter") entrarNoSistema(); });
+$("senha").addEventListener("keydown", (e) => { if(e.key === "Enter") enviarEntrada(); });
 $("usuario").addEventListener("keydown", (e) => { if(e.key === "Enter") $("senha").focus(); });
 
 // --------------------------------------------------------------------------
@@ -2154,7 +2286,7 @@ function limparPedido(){
 ["referencia","cliente","data"].forEach(id => $(id).addEventListener("change", atualizarResumo));
 
 // O sistema só arranca depois da entrada.
-if(verificarEntrada()) iniciar();
+verificarEntrada().then(liberado => { if(liberado) iniciar(); });
 </script>
 </body>
 </html>

@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// O banco guarda só o cadastro de acesso — uma ficha por usuário, com a data
+// em que o acesso expira. Proformas, rascunhos e listas de preço não passam
+// por aqui: ficam no navegador de quem usa.
+// ---------------------------------------------------------------------------
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /usuarios/{uid} {
+      // Cada um enxerga apenas a própria ficha.
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // A ficha nasce no cadastro, com validade de no máximo uma semana.
+      // Como a data é conferida contra o relógio do servidor, não adianta
+      // mandar uma validade maior do lado do navegador.
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(
+                         ['email', 'criado_em', 'expira_em', 'tipo'])
+                    && request.resource.data.tipo == 'temporario'
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.criado_em == request.time
+                    && request.resource.data.expira_em is timestamp
+                    && request.resource.data.expira_em > request.time
+                    && request.resource.data.expira_em <= request.time + duration.value(7, 'd');
+
+      // Ninguém estende o próprio prazo nem apaga a ficha para recomeçar:
+      // alterações só pelo console do Firebase.
+      allow update, delete: if false;
+    }
+
+    // Nada além do cadastro trafega por aqui.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
